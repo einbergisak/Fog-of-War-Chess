@@ -2,5 +2,5 @@
 
 
 ## Collaborators
-* Isak Ieinberg
+* Isak Einberg
 * Hampus Hallkvist
