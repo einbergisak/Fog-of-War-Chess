@@ -1,2 +1,6 @@
 # projinda
-test
+
+
+## Collaborators
+* Isak Ieinberg
+* Hampus Hallkvist
