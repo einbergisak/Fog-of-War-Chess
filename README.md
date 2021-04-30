@@ -9,4 +9,3 @@ Uses the game library 'ggez'
 ## Collaborators
 * Isak Einberg
 * Hampus Hallkvist
-hej
