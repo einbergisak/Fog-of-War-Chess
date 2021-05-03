@@ -1,5 +1,7 @@
 use ggez::{Context, ContextBuilder, GameResult, conf, graphics::{self, Drawable, Rect}, input::mouse};
 use ggez::event::{self, EventHandler};
+use piece::Board;
+mod piece;
 
 fn main() {
     let mut path;
@@ -7,7 +9,7 @@ fn main() {
         loop {
             path = std::path::PathBuf::from(manifest_dir.clone());
             path.push("resources");
-
+    
             let (mut ctx, mut event_loop) = ContextBuilder::new("Fog of war", "Isak & Hampus")
                 .window_mode(
                     conf::WindowMode::default()
@@ -24,13 +26,6 @@ fn main() {
 
             let mut game = Game::new(&mut ctx);
             // Run!
-            let mut k: Option<bool> = Some(true);
-            match k {
-                std::option::Option::Some(boolean) => {
-
-                }
-                std::option::Option::None => {}
-            }
             match event::run(&mut ctx, &mut event_loop, &mut game) {
                 Ok(_) => {
                 }
@@ -69,17 +64,7 @@ impl EventHandler for Game {
             for column in 0..8 {
                 let mut rect = Rect::new_i32(column * squareSize, row * squareSize, squareSize, squareSize);
 
-                DrawParam::new()
-                        .src(src)
-                        .scale(Vector2::new(
-                            self.scaled_tile_size / DEFAULT_TILE_SIZE,
-                            self.scaled_tile_size / DEFAULT_TILE_SIZE,
-                        ))
-                        .dest(Point2::new(
-                            x as f32 * self.scaled_tile_size,
-                            y as f32 * self.scaled_tile_size,
-                        ))
-                graphics::draw(ctx, &rect, test)
+
             }
         }
         graphics::present(ctx)
