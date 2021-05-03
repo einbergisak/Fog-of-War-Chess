@@ -13,7 +13,7 @@ pub(crate) enum PieceType {
     Rook,
     Bishop,
     Knight,
-    Pawn
+    Pawn,
 }
 
 #[derive(Clone)]
