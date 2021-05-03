@@ -1,13 +1,14 @@
+pub(crate) type Board = Vec<Option<Piece>>;
 
-pub(crate) type Board = Vec<Vec<Option<Piece>>>;
-
+#[derive(Clone)]
 pub(crate) enum Color {
-	White,
-	Black
+    White,
+    Black,
 }
 
+#[derive(Clone)]
 pub(crate) enum PieceType {
-	King,
+    King,
     Queen,
     Rook,
     Bishop,
@@ -15,7 +16,8 @@ pub(crate) enum PieceType {
     Pawn
 }
 
+#[derive(Clone)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
-    pub(crate) color: Color
+    pub(crate) color: Color,
 }
