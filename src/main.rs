@@ -8,7 +8,9 @@ use ggez::{
     Context, ContextBuilder, GameResult,
 };
 use piece::{Board, Piece, PieceType::*};
+use render_utilities::flip_board;
 mod piece;
+mod render_utilities;
 
 const BOARD_SIZE: usize = 8;
 
@@ -66,14 +68,15 @@ impl Game {
         board[7] = Some(Piece{piece_type: Rook, color: piece::Color::White});
 
         // White pawns
-        for i in 8..16{
+        for i in 8..16 {
             board[i] = Some(Piece{piece_type: Pawn, color: piece::Color::White});
         }
 
         // Black pawns
-        for i in 48..56{
+        for i in 48..56 {
             board[i] = Some(Piece{piece_type: Pawn, color: piece::Color::Black});
         }
+        board[28] = Some(Piece{piece_type: Pawn, color: piece::Color::White});
 
         // Black pieces
         board[56] = Some(Piece{piece_type: Rook, color: piece::Color::Black});
@@ -141,7 +144,13 @@ impl EventHandler for Game {
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image);
 
-        for (index, tile) in self.board.iter().enumerate() {
+        let render_board = if true {
+            flip_board(&self.board)
+        } else {
+            self.board.clone()
+        };
+
+        for (index, tile) in render_board.iter().enumerate() {
             match tile {
                 Some(piece) => {
                     let src_image_y = match piece.color {
