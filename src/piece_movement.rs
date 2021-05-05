@@ -167,6 +167,27 @@ pub(crate) fn knight_valid_moves(
     indices
 }
 
+pub(crate) fn king_valid_moves(
+    board: &Board,
+    piece: &Piece,
+    piece_source_index: usize,
+) -> Vec<usize> {
+    let mut indices: Vec<usize> = Vec::new();
+    let (x, y) = translate_to_coords(piece_source_index);
+
+    for xd in -1..=1 {
+        for yd in -1..=1 {
+            // Makes sure that it doesn't go outside of the board index bounds
+            let (dest_x, dest_y) = (x as i32 + xd, y as i32 + yd);
+            if dest_x >= 0 && dest_x < BOARD_SIZE as i32 && dest_y >= 0 && dest_y < BOARD_SIZE as i32 && !(dest_x == x as i32 && dest_y == y as i32) {
+                add_if_can_move(translate_to_index(dest_x as usize, dest_y as usize), piece, &mut indices, board);
+            }
+        }
+    }
+
+    indices
+}
+
 /**
    Adds the given index to the given vector if the move is valid and return true.
    Returns false if the piece cannot move to the index, leaving the vector unchanged.

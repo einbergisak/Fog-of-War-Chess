@@ -1,6 +1,6 @@
 use ggez::graphics::Rect;
 
-use crate::piece_movement::{bishop_valid_moves, knight_valid_moves, rook_valid_moves};
+use crate::piece_movement::{bishop_valid_moves, king_valid_moves, knight_valid_moves, rook_valid_moves};
 
 pub(crate) type Board = Vec<Option<Piece>>;
 
@@ -56,7 +56,9 @@ pub(crate) fn get_valid_move_indices(
     println!("Found piece at source index {}", piece_source_index);
 
     match piece.piece_type {
-        PieceType::King => {}
+        PieceType::King => {
+            indices.append(&mut king_valid_moves(board, piece, piece_source_index))
+        }
         PieceType::Queen => {
             // Queen moves as both Rook and Bishop
             indices.append(&mut rook_valid_moves(board, piece, piece_source_index));

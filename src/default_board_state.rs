@@ -35,7 +35,7 @@ pub(crate) fn generate_default_board() -> Board {
     });
 
     board[29] = Some(Piece {
-        piece_type: Rook,
+        piece_type: King,
         color: White,
     });
 
