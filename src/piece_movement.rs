@@ -1,6 +1,6 @@
 use crate::{
     event_handler::BOARD_SIZE,
-    piece::{Board, Piece},
+    piece::{Board, Piece, Color::*},
     render_utilities::{translate_to_coords, translate_to_index},
 };
 
@@ -187,6 +187,67 @@ pub(crate) fn king_valid_moves(
 
     indices
 }
+
+pub(crate) fn pawn_valid_moves(
+    board: &Board,
+    piece: &Piece,
+    piece_source_index: usize,
+) -> Vec<usize> {
+    let mut indices: Vec<usize> = Vec::new();
+    let (x, y) = translate_to_coords(piece_source_index);
+
+    // let unblocked_forwards = |piece: &Piece, step_size: usize, board: &Board| {
+    //     if let White = piece.color{
+
+    //     } else{
+
+    //     };
+    // };
+
+    if let White = piece.color{ // White pawns move in positive y direction
+        if y == 1 && board[translate_to_index(x, y+1)].is_none() &&board[translate_to_index(x, y+2)].is_none(){ // Ability to move two spaces in the positive y direction on its first move
+            indices.push(translate_to_index(x, y+2))
+        }
+        if y < BOARD_SIZE - 1{
+            if board[translate_to_index(x, y+1)].is_none(){ // Regular move 1 square forwards
+                indices.push(translate_to_index(x, y+1))
+            }
+            if x > 0 { // Pawn capture, diagonally in negative x direction
+                if let Some(Piece{piece_type:_, color: Black}) = board[translate_to_index(x-1, y+1)]{
+                    indices.push(translate_to_index(x-1, y+1))
+                }
+            }
+            if x < BOARD_SIZE - 1{ // Pawn capture, diagonally in positive x direction
+                if let Some(Piece{piece_type:_, color: Black}) = board[translate_to_index(x+1, y+1)]{
+                    indices.push(translate_to_index(x+1, y+1))
+                }
+            }
+        }
+    } else{ // Black pawns move in negative y direction
+        if y == BOARD_SIZE - 2 && board[translate_to_index(x, y-1)].is_none() && board[translate_to_index(x, y-2)].is_none(){ // Ability to move two spaces forward on its first move
+            indices.push(translate_to_index(x, y-2))
+        }
+        if y > 0 {
+            if board[translate_to_index(x, y-1)].is_none(){ // Regular move 1 square forwards
+                indices.push(translate_to_index(x, y-1))
+            }
+            if x > 0 { // Pawn capture, diagonally in negative x direction
+                if let Some(Piece{piece_type:_, color: White}) = board[translate_to_index(x-1, y-1)]{
+                    indices.push(translate_to_index(x-1, y-1))
+                }
+            }
+            if x < BOARD_SIZE - 1{ // Pawn capture, diagonally in positive x direction
+                if let Some(Piece{piece_type:_, color: White}) = board[translate_to_index(x+1, y-1)]{
+                    indices.push(translate_to_index(x+1, y-1))
+                }
+            }
+        }
+    }
+
+    indices
+}
+
+
 
 /**
    Adds the given index to the given vector if the move is valid and return true.

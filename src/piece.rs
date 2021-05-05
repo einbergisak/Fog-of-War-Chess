@@ -1,6 +1,6 @@
 use ggez::graphics::Rect;
 
-use crate::piece_movement::{bishop_valid_moves, king_valid_moves, knight_valid_moves, rook_valid_moves};
+use crate::piece_movement::{bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves, rook_valid_moves};
 
 pub(crate) type Board = Vec<Option<Piece>>;
 
@@ -76,7 +76,9 @@ pub(crate) fn get_valid_move_indices(
             // Move two steps either vertically or horizontally, then one step in a perpendicular direction.
             indices.append(&mut knight_valid_moves(board, piece, piece_source_index));
         }
-        PieceType::Pawn => {}
+        PieceType::Pawn => {
+            indices.append(&mut pawn_valid_moves(board, piece, piece_source_index))
+        }
     }
 
     // Returns a list of the valid moves
