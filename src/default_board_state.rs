@@ -30,7 +30,17 @@ pub(crate) fn generate_default_board() -> Board {
 
     // Nicklas
     board[28] = Some(Piece {
-        piece_type: Pawn,
+        piece_type: Bishop,
+        color: White,
+    });
+
+    board[29] = Some(Piece {
+        piece_type: Rook,
+        color: White,
+    });
+
+    board[27] = Some(Piece {
+        piece_type: Queen,
         color: White,
     });
 

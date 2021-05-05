@@ -1,15 +1,15 @@
-use ggez::{event::{self}};
+use game::Game;
+use ggez::event::{self};
 use ggez::{
     conf,
     graphics::{self, Rect},
     ContextBuilder,
 };
-use game::Game;
 mod default_board_state;
 mod event_handler;
+mod game;
 mod piece;
 mod render_utilities;
-mod game;
 
 fn main() {
     let mut path;
@@ -17,7 +17,9 @@ fn main() {
         path = std::path::PathBuf::from(manifest_dir.clone());
         path.push("resources");
 
-        let conf = conf::WindowSetup::default().title("Fog of War Chess").vsync(false);
+        let conf = conf::WindowSetup::default()
+            .title("Fog of War Chess")
+            .vsync(false);
 
         let (mut ctx, mut event_loop) = ContextBuilder::new("Fog of war", "Isak & Hampus")
             .window_mode(
@@ -45,4 +47,3 @@ fn main() {
         println!("Error loading file.");
     }
 }
-
