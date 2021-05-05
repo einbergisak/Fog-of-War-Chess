@@ -20,8 +20,6 @@ impl EventHandler for Game {
         while ggez::timer::check_update_time(ctx, 60) {}
         Ok(())
     }
-    // y * 8 + x
-    // (y-1) * 8 + x - 1
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
 
@@ -97,7 +95,7 @@ impl EventHandler for Game {
             MouseButton::Left => {
                 let (start_x, start_y) = (0.0, 0.0);
 
-                // Out of bounds checking
+                // Cursor out of bounds checking
                 if start_x + x > BOARD_WIDTH as f32
                     || start_y + y > BOARD_WIDTH as f32
                     || x < start_x
@@ -106,11 +104,11 @@ impl EventHandler for Game {
                     return;
                 }
 
-                // Calculates list index (if in bounds) of the clicked tile
+                // Calculates list index (if cursor is in bounds) of the clicked tile
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
-                let mut index = y_tile * BOARD_SIZE + x_tile;
+                let mut index = translate_to_index(x_tile, y_tile);
                 if self.flipped_board {
                     index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
                 }

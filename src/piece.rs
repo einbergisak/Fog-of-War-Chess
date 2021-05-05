@@ -1,6 +1,8 @@
 use ggez::graphics::Rect;
 
-use crate::piece_movement::{bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves, rook_valid_moves};
+use crate::piece_movement::{
+    bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves, rook_valid_moves,
+};
 
 pub(crate) type Board = Vec<Option<Piece>>;
 
@@ -48,39 +50,34 @@ pub(crate) fn get_valid_move_indices(
     piece: &Piece,
     piece_source_index: usize,
 ) -> Vec<usize> {
-    let mut indices: Vec<usize> = Vec::new();
     println!(
         "Piece source index {}, cointains: {:?}",
         piece_source_index, piece
     );
     println!("Found piece at source index {}", piece_source_index);
 
-    match piece.piece_type {
-        PieceType::King => {
-            indices.append(&mut king_valid_moves(board, piece, piece_source_index))
-        }
-        PieceType::Queen => {
-            // Queen moves as both Rook and Bishop
-            indices.append(&mut rook_valid_moves(board, piece, piece_source_index));
-            indices.append(&mut bishop_valid_moves(board, piece, piece_source_index));
-        }
-        PieceType::Rook => {
-            // Horizontal + Vertical movement
-            indices.append(&mut rook_valid_moves(board, piece, piece_source_index));
-        }
-        PieceType::Bishop => {
-            // Diagonal movement
-            indices.append(&mut bishop_valid_moves(board, piece, piece_source_index));
-        }
-        PieceType::Knight => {
-            // Move two steps either vertically or horizontally, then one step in a perpendicular direction.
-            indices.append(&mut knight_valid_moves(board, piece, piece_source_index));
-        }
-        PieceType::Pawn => {
-            indices.append(&mut pawn_valid_moves(board, piece, piece_source_index))
-        }
-    }
-
     // Returns a list of the valid moves
-    indices
+    match piece.piece_type {
+        // King moves one square in any direction
+        PieceType::King => king_valid_moves(board, piece, piece_source_index),
+
+        // Queen moves diagonally, vertically or horizontally (Rook + Bishop)
+        PieceType::Queen => {
+            let mut moves = bishop_valid_moves(board, piece, piece_source_index);
+            moves.append(&mut rook_valid_moves(board, piece, piece_source_index));
+            moves
+        }
+
+        // Rook moves vertically or horizontally
+        PieceType::Rook => rook_valid_moves(board, piece, piece_source_index),
+
+        // Bishop moves diagonally
+        PieceType::Bishop => bishop_valid_moves(board, piece, piece_source_index),
+
+        // Knight moves two steps either vertically or horizontally, then one step in a perpendicular direction.
+        PieceType::Knight => knight_valid_moves(board, piece, piece_source_index),
+
+        // Pawn move one square forwards, and captures one square diagonally forwards. It can move two squares forward on its first move.
+        PieceType::Pawn => pawn_valid_moves(board, piece, piece_source_index),
+    }
 }

@@ -28,22 +28,6 @@ pub(crate) fn generate_default_board() -> Board {
         });
     }
 
-    // Nicklas
-    board[28] = Some(Piece {
-        piece_type: Bishop,
-        color: White,
-    });
-
-    board[29] = Some(Piece {
-        piece_type: King,
-        color: White,
-    });
-
-    board[27] = Some(Piece {
-        piece_type: Queen,
-        color: White,
-    });
-
     // Black pieces
     for (index, piece_type) in piece_order.iter().enumerate() {
         board[index + 56] = Some(Piece {
