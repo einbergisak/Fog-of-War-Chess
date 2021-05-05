@@ -9,6 +9,7 @@ mod default_board_state;
 mod event_handler;
 mod game;
 mod piece;
+mod piece_movement;
 mod render_utilities;
 
 fn main() {
