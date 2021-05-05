@@ -1,15 +1,15 @@
-use default_board_state::generate_default_board;
-use ggez::event::{self};
+use ggez::{event::{self}};
 use ggez::{
     conf,
     graphics::{self, Rect},
-    Context, ContextBuilder,
+    ContextBuilder,
 };
-use piece::{Board, Piece};
+use game::Game;
 mod default_board_state;
 mod event_handler;
 mod piece;
 mod render_utilities;
+mod game;
 
 fn main() {
     let mut path;
@@ -46,19 +46,3 @@ fn main() {
     }
 }
 
-// Main struct
-struct Game {
-    board: Board,
-    grabbed_piece: Option<(Piece, (usize, usize))>,
-    flipped_board: bool
-}
-
-impl Game {
-    pub fn new(_ctx: &mut Context) -> Game {
-        Game {
-            board: generate_default_board(), // Load/create resources such as images here.
-            grabbed_piece: None,
-            flipped_board: true
-        }
-    }
-}
