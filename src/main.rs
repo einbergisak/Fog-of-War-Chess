@@ -23,36 +23,21 @@ mod networking {
 }
 
 #[derive(Debug)]
-pub(crate) struct AppState {
-    pub(crate) count: i32
+pub(crate) struct State {
+    pub(crate) count: i32,
+    pub(crate) incoming_move: Option<(usize, usize)>
 }
 
-static APP_STATE: Storage<RwLock<AppState>> = Storage::new();
+static STATE: Storage<RwLock<State>> = Storage::new();
 
 fn main() {
-    let app_state = AppState {
-        count: 0
+    let app_state = State {
+        count: 0,
+        incoming_move: None
     };
-    APP_STATE.set(RwLock::new(app_state));
+    STATE.set(RwLock::new(app_state));
 
-    let mut connection = connection::Networking::new();
-
-    let mut command_buffer = String::new();
-    let mut payload_buffer = String::new();
-    let mut stdin = io::stdin();
-    loop {
-        command_buffer.clear();
-        payload_buffer.clear();
-        println!("Enter your command: ");
-        stdin.read_line(&mut command_buffer);
-        println!("Enter your payload: ");
-        stdin.read_line(&mut payload_buffer);
-        connection.send(&command_buffer,&payload_buffer);
-
-        let second = time::Duration::from_millis(200);
-        std::thread::sleep(second);
-    }
-    /* let mut path;
+    let mut path;
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         path = std::path::PathBuf::from(manifest_dir.clone());
         path.push("resources");
@@ -78,6 +63,23 @@ fn main() {
 
         let mut game = Game::new(&mut ctx);
 
+        let mut command_buffer = String::new();
+        let mut payload_buffer = String::new();
+        let mut stdin = io::stdin();
+
+        command_buffer.clear();
+        payload_buffer.clear();
+        println!("Create or join? (c/j): ");
+        stdin.read_line(&mut command_buffer);
+
+        if (command_buffer.trim() == "c") {
+            game.connection.send("create_room","");
+        } else {
+            println!("Room code?: ");
+            stdin.read_line(&mut payload_buffer);
+            game.connection.send("join_room",&payload_buffer);
+        }
+
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {
             Ok(_) => {}
@@ -85,5 +87,5 @@ fn main() {
         }
     } else {
         println!("Error loading file.");
-    } */
+    }
 }

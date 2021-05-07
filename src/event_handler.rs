@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use ggez::{
     event::{EventHandler, MouseButton},
     graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
@@ -5,11 +7,7 @@ use ggez::{
     Context, GameResult,
 };
 
-use crate::{
-    piece::{get_piece_rect, get_valid_move_indices, Piece},
-    render_utilities::{flip_board, flip_index, translate_to_index},
-    Game,
-};
+use crate::{Game, STATE, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
@@ -17,7 +15,17 @@ pub(crate) const BOARD_WIDTH: i32 = BOARD_SIZE as i32 * TILE_SIZE;
 
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        while ggez::timer::check_update_time(ctx, 60) {}
+        while ggez::timer::check_update_time(ctx, 60) {
+            let incoming_move = STATE.get().read().unwrap().incoming_move;
+            match incoming_move {
+                Some((target, to)) => {
+                    self.move_piece_index(target, to);
+                    // After move has been performed we remove the values
+                    STATE.get().write().unwrap().incoming_move = None;
+                }
+                None => {}
+            }
+        }
         Ok(())
     }
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
@@ -179,19 +187,15 @@ impl EventHandler for Game {
                 ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
 
-                let valid_moves = get_valid_move_indices(&self.board, &piece, piece_source_index);
+                let valid_moves = get_valid_move_indices(self, &piece, piece_source_index);
                 println!("Valid moves: {:?}", valid_moves);
                 if valid_moves.contains(&piece_dest_index) {
                     println!("Move to index {} is valid", piece_dest_index);
-                    self.board[piece_dest_index] = Some(piece);
+                    self.move_piece(piece, piece_dest_index);
+                    self.connection.send("opponent", &format!("{}:{}", piece_source_index, piece_dest_index));
                 } else {
                     println!("Move to index {} is NOT valid", piece_dest_index);
-                    // // TODO this is copied code from row 150, make this better
-                    // // Reset position to start
-                    // if self.flipped_board {
-                    //     index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
-                    // }
-
+                    // // Reset position to source
                     self.board[piece_source_index] = Some(piece);
                 }
             }

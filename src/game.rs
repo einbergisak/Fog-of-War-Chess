@@ -3,7 +3,7 @@ use ggez::{
     Context,
 };
 
-use crate::event_handler::TILE_SIZE;
+use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 use crate::{
     default_board_state::generate_default_board,
     piece::{Board, Piece},
@@ -15,6 +15,7 @@ pub(crate) struct Game {
     pub(crate) grabbed_piece: Option<(Piece, (usize, usize))>,
     pub(crate) flipped_board: bool,
     pub(crate) board_mesh: Mesh,
+    pub(crate) connection: Networking
 }
 
 impl Game {
@@ -24,6 +25,7 @@ impl Game {
             grabbed_piece: None,
             flipped_board: false,
             board_mesh: Game::get_board_mesh(ctx),
+            connection: Networking::new()
         }
     }
 
@@ -60,5 +62,15 @@ impl Game {
             .build(ctx)
             .expect("Failed to render game board");
         mesh
+    }
+
+    pub(crate) fn move_piece_index(&mut self, piece_source_index: usize, piece_dest_index: usize){
+        println!("Took: {} {:?}", piece_source_index, self.board[piece_source_index]);
+        let piece = self.board[piece_source_index].take().expect("Error moving piece");
+        self.move_piece(piece, piece_dest_index);
+    }
+
+    pub(crate) fn move_piece(&mut self, piece: Piece, piece_dest_index: usize){
+        self.board[piece_dest_index] = Some(piece);
     }
 }

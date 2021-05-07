@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock, mpsc::Sender}};
 
 use rust_socketio::{SocketBuilder, Socket};
 use serde_json::json;
-use crate::{AppState, networking::events, APP_STATE};
+use crate::{State, networking::events, STATE};
 pub(crate) struct Networking {
 	socket: Socket
 }
