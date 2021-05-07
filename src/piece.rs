@@ -1,8 +1,12 @@
 use ggez::graphics::Rect;
 
-use crate::{game::Game, piece_movement::{
-    bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves, rook_valid_moves,
-}};
+use crate::{
+    game::Game,
+    piece_movement::{
+        bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
+        rook_valid_moves,
+    },
+};
 
 pub(crate) type Board = Vec<Option<Piece>>;
 
@@ -45,7 +49,9 @@ pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
     Rect::new(src_image_x, src_image_y, 1.0 / 6.0, 0.5)
 }
 
-pub(crate) fn get_valid_move_indices(game: &mut Game, piece: &Piece,
+pub(crate) fn get_valid_move_indices(
+    game: &mut Game,
+    piece: &Piece,
     piece_source_index: usize,
 ) -> Vec<usize> {
     let board = &game.board;

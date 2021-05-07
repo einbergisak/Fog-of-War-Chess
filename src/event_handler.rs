@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use ggez::{
     event::{EventHandler, MouseButton},
     graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
@@ -7,7 +5,11 @@ use ggez::{
     Context, GameResult,
 };
 
-use crate::{Game, STATE, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{
+    piece::{get_piece_rect, get_valid_move_indices, Piece},
+    render_utilities::{flip_board, flip_index, translate_to_index},
+    Game, STATE,
+};
 
 pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
@@ -192,7 +194,10 @@ impl EventHandler for Game {
                 if valid_moves.contains(&piece_dest_index) {
                     println!("Move to index {} is valid", piece_dest_index);
                     self.move_piece(piece, piece_dest_index);
-                    self.connection.send("opponent", &format!("{}:{}", piece_source_index, piece_dest_index));
+                    self.connection.send(
+                        "opponent",
+                        &format!("{}:{}", piece_source_index, piece_dest_index),
+                    );
                 } else {
                     println!("Move to index {} is NOT valid", piece_dest_index);
                     // // Reset position to source

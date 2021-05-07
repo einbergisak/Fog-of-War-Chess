@@ -1,5 +1,7 @@
-use core::time;
-use std::{io::{self, Read}, sync::{Arc, RwLock, mpsc}, time::Duration};
+use std::{
+    io::{self},
+    sync::RwLock,
+};
 
 use game::Game;
 use ggez::event::{self};
@@ -8,7 +10,6 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
-use networking::connection;
 use state::Storage;
 
 mod default_board_state;
@@ -25,7 +26,7 @@ mod networking {
 #[derive(Debug)]
 pub(crate) struct State {
     pub(crate) count: i32,
-    pub(crate) incoming_move: Option<(usize, usize)>
+    pub(crate) incoming_move: Option<(usize, usize)>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -33,7 +34,7 @@ static STATE: Storage<RwLock<State>> = Storage::new();
 fn main() {
     let app_state = State {
         count: 0,
-        incoming_move: None
+        incoming_move: None,
     };
     STATE.set(RwLock::new(app_state));
 
@@ -65,19 +66,19 @@ fn main() {
 
         let mut command_buffer = String::new();
         let mut payload_buffer = String::new();
-        let mut stdin = io::stdin();
+        let stdin = io::stdin();
 
         command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
-        stdin.read_line(&mut command_buffer);
+        stdin.read_line(&mut command_buffer).expect("Could not read line");
 
-        if (command_buffer.trim() == "c") {
-            game.connection.send("create_room","");
+        if command_buffer.trim() == "c" {
+            game.connection.send("create_room", "");
         } else {
             println!("Room code?: ");
-            stdin.read_line(&mut payload_buffer);
-            game.connection.send("join_room",&payload_buffer);
+            stdin.read_line(&mut payload_buffer).expect("Could not readline");
+            game.connection.send("join_room", &payload_buffer);
         }
 
         // Run!
