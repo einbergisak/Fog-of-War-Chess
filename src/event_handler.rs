@@ -1,13 +1,15 @@
 use ggez::{
     event::{EventHandler, MouseButton},
-    graphics::{
-        self, spritebatch::SpriteBatch, Color, DrawMode, DrawParam, Image, Mesh, MeshBuilder, Rect,
-    },
+    graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
     nalgebra::Point2,
     Context, GameResult,
 };
 
-use crate::{Game, piece::{Piece, get_piece_rect, get_valid_move_indices, is_valid_move}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{
+    piece::{get_piece_rect, get_valid_move_indices, Piece},
+    render_utilities::{flip_board, flip_index, translate_to_index},
+    Game,
+};
 
 pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
@@ -18,8 +20,6 @@ impl EventHandler for Game {
         while ggez::timer::check_update_time(ctx, 60) {}
         Ok(())
     }
-    // y * 8 + x
-    // (y-1) * 8 + x - 1
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
 
@@ -42,7 +42,7 @@ impl EventHandler for Game {
             grabbed_index = Some(translate_to_index(x.clone(), y.clone()));
 
             let rect = get_piece_rect(&piece);
-            let (mut x, mut y) = (
+            let (x, y) = (
                 ggez::input::mouse::position(ctx).x,
                 ggez::input::mouse::position(ctx).y,
             );
@@ -50,7 +50,7 @@ impl EventHandler for Game {
                 x - TILE_SIZE as f32 / 2.0,
                 y - TILE_SIZE as f32 / 2.0,
             )));
-        } else{
+        } else {
             grabbed_index = None;
             grabbed_param = None;
         };
@@ -95,7 +95,7 @@ impl EventHandler for Game {
             MouseButton::Left => {
                 let (start_x, start_y) = (0.0, 0.0);
 
-                // Out of bounds checking
+                // Cursor out of bounds checking
                 if start_x + x > BOARD_WIDTH as f32
                     || start_y + y > BOARD_WIDTH as f32
                     || x < start_x
@@ -104,21 +104,21 @@ impl EventHandler for Game {
                     return;
                 }
 
-                // Calculates list index (if in bounds) of the clicked tile
+                // Calculates list index (if cursor is in bounds) of the clicked tile
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
-                let mut index = y_tile * BOARD_SIZE + x_tile;
+                let mut index = translate_to_index(x_tile, y_tile);
                 if self.flipped_board {
                     index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
                 }
 
                 // Attempts to grab a piece from the given tile
-                if let Some(piece) = self.board[index].clone() {
+                if let Some(piece) = self.board[index].take() {
                     self.grabbed_piece = Some((piece, (x_tile, y_tile)));
+                    println!("Grabbed piece at ({}, {})", x_tile, y_tile);
                     // Lock the cursor inside the application
-                    ggez::input::mouse::set_cursor_grabbed(ctx, true)
-                        .expect("Cursor grabbed failed");
+                    ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
                     ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
                 } else {
                     return;
@@ -154,6 +154,14 @@ impl EventHandler for Game {
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
+                let piece_source_index = translate_to_index(source_x as usize, source_y as usize);
+                let mut piece_dest_index = translate_to_index(x_tile, y_tile);
+
+                if self.flipped_board {
+                    piece_dest_index =
+                        flip_index(&(piece_dest_index as i32), BOARD_SIZE as i32) as usize;
+                }
+
                 // Out of bounds checking
                 if start_x + x > BOARD_WIDTH as f32
                     || start_y + y > BOARD_WIDTH as f32
@@ -163,38 +171,28 @@ impl EventHandler for Game {
                     // If we are out of bounds then we place the piece
                     // at its original position
 
-                    let mut index = source_y as usize * BOARD_SIZE + source_x as usize;
-                    if self.flipped_board {
-                        index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
-                    }
-
-                    self.board[index] = Some(piece);
+                    // Board index for the piece which the cursor is on
+                    self.board[piece_source_index] = Some(piece);
                     return;
                 }
 
-                let mut index = y_tile * BOARD_SIZE + x_tile;
-                if self.flipped_board {
-                    index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
-                }
-                ggez::input::mouse::set_cursor_grabbed(ctx, false);
+                ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
-                let piece_index;
 
-                piece_index = translate_to_index(source_x as usize, source_y as usize);
-
-                let temp = get_valid_move_indices(&self.board, piece_index);
-                println!("HERE IT IS :D{:?}", temp);
-                if is_valid_move(index, temp) {
-                    self.board[piece_index] = Some(piece);
+                let valid_moves = get_valid_move_indices(&self.board, &piece, piece_source_index);
+                println!("Valid moves: {:?}", valid_moves);
+                if valid_moves.contains(&piece_dest_index) {
+                    println!("Move to index {} is valid", piece_dest_index);
+                    self.board[piece_dest_index] = Some(piece);
                 } else {
-                    // TODO this is copied code from row 150, make this better
-                    // Reset position to start
-                    index = source_y as usize * BOARD_SIZE + source_x as usize;
-                    if self.flipped_board {
-                        index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
-                    }
+                    println!("Move to index {} is NOT valid", piece_dest_index);
+                    // // TODO this is copied code from row 150, make this better
+                    // // Reset position to start
+                    // if self.flipped_board {
+                    //     index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
+                    // }
 
-                    self.board[index] = Some(piece);
+                    self.board[piece_source_index] = Some(piece);
                 }
             }
             _ => {}
