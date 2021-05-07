@@ -1,8 +1,6 @@
-use std::sync::{Arc, RwLock, mpsc::Sender};
-
 use rust_socketio::{Payload, Socket};
 
-use crate::{AppState, APP_STATE};
+use crate::{APP_STATE};
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
 	let app_state = APP_STATE.get();
