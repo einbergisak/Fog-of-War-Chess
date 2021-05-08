@@ -3,10 +3,7 @@ use ggez::{
     Context,
 };
 
-use crate::{
-    default_board_state::generate_default_board,
-    piece::{Board, Piece},
-};
+use crate::{default_board_state::generate_default_board, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -78,8 +75,31 @@ impl Game {
     }
 
     pub(crate) fn move_piece(&mut self, piece: Piece, piece_dest_index: usize) {
+        match &self.board[piece_dest_index] {
+            Some(Piece{color: White, piece_type: King}) => {
+                self.game_over(Black);
+            }
+            Some(Piece{color: Black, piece_type: King}) => {
+                self.game_over(White);
+            }
+            _ => {}
+        }
+
         // Your turn is over once you've made a move
         self.active_turn = !self.active_turn;
         self.board[piece_dest_index] = Some(piece);
+    }
+
+    fn game_over(&mut self, winning_color: piece::Color) {
+        match winning_color {
+            White => {
+                println!("Black lost, white won!");
+                todo!()
+            }
+            Black => {
+                println!("White lost, black won!");
+                todo!()
+            }
+        }
     }
 }
