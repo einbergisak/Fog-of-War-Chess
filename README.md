@@ -13,18 +13,25 @@ Uses the game library 'ggez'
 Upplägg:
 
 * Första veckan:
-  * Fixa structs, pjäsarray.
+  * Implementera pjäser och bräde
   * Designa brädet och pjäser (grafikdelen)
   * Kunna dra och släppa pjäser
-  * Piece logic & Move validation (behöver inte fixa schack eller schackmatt)
+  * Piece logic & Move validation
+  * Nätverk (server NodeJS)
+
 * Andra veckan:
-  * Special rules (rokad, promotion, en passant)
+  * Player implementation
+    * Turn-system: Spelare kan endast flytta sina egna pjäser på sin egen turn.
+    * Win/lose system
+  * Special rules (rockad/castling, promotion, en passant)
   * Fog of war-system
     * (Pjäser kan “se” de rutor som de kan attackera och/eller gå till)
   * Main menu
-  * Nätverk (server NodeJS)
-  * Om tid finns:
-    * Inställningsbar Schackklocka
-    * Ändra färg på brädet
-    * Pre-moves
-    * See captured pieces
+  
+* Om tid finns:
+  * Inställningsbar Schackklocka
+  * Ändra färg på brädet
+  * Pre-moves
+  * See captured pieces
+  * Resign-knapp
+  * Joina lobby som åskådare
