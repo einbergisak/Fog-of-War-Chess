@@ -30,10 +30,10 @@ Upplägg:
   * Main menu
   
 * Om tid finns:
-  * Inställningsbar Schackklocka
-  * Ändra färg på brädet
-  * Pre-moves
+  * Schackklocka
+  * Pre-moves (Isak)
+  * Joina lobby som åskådare (Hampus)
   * See captured pieces
   * Resign-knapp
   * Navigera genom historik av drag
-  * Joina lobby som åskådare
+  * Ändra färg på brädet
