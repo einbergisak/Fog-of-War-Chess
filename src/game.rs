@@ -13,19 +13,21 @@ use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 pub(crate) struct Game {
     pub(crate) board: Board,
     pub(crate) grabbed_piece: Option<(Piece, (usize, usize))>,
-    pub(crate) flipped_board: bool,
+    pub(crate) playing_as_white: bool,
     pub(crate) board_mesh: Mesh,
     pub(crate) connection: Networking,
+    pub(crate) active_turn: bool
 }
 
 impl Game {
-    pub(crate) fn new(ctx: &mut Context) -> Game {
+    pub(crate) fn new(ctx: &mut Context, playing_as_white: bool) -> Game {
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
-            flipped_board: false,
+            playing_as_white: false,
             board_mesh: Game::get_board_mesh(ctx),
             connection: Networking::new(),
+            active_turn: playing_as_white
         }
     }
 
@@ -76,6 +78,8 @@ impl Game {
     }
 
     pub(crate) fn move_piece(&mut self, piece: Piece, piece_dest_index: usize) {
+        // Your turn is over once you've made a move
+        self.active_turn = !self.active_turn;
         self.board[piece_dest_index] = Some(piece);
     }
 }

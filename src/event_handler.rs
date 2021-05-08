@@ -39,7 +39,7 @@ impl EventHandler for Game {
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image);
 
-        let render_board = if self.flipped_board {
+        let render_board = if self.playing_as_white {
             flip_board(&self.board)
         } else {
             self.board.clone()
@@ -119,13 +119,25 @@ impl EventHandler for Game {
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
                 let mut index = translate_to_index(x_tile, y_tile);
-                if self.flipped_board {
+                if self.playing_as_white {
                     index = flip_index(&(index as i32), BOARD_SIZE as i32) as usize;
                 }
 
                 // Attempts to grab a piece from the given tile
                 if let Some(piece) = self.board[index].take() {
+                    match &piece.color {
+                        crate::piece::Color::White if !self.playing_as_white => {
+                            self.board[index] = Some(piece);
+                            return
+                        }
+                        crate::piece::Color::Black if self.playing_as_white => {
+                            self.board[index] = Some(piece);
+                            return
+                        }
+                        _ => {}
+                    }
                     self.grabbed_piece = Some((piece, (x_tile, y_tile)));
+
                     println!("Grabbed piece at ({}, {})", x_tile, y_tile);
                     // Lock the cursor inside the application
                     ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
@@ -147,6 +159,11 @@ impl EventHandler for Game {
     ) {
         match button {
             MouseButton::Left => {
+
+                // UI logic
+
+                //------------------------------------------------------
+
                 let piece: Piece;
                 let source_x;
                 let source_y;
@@ -167,7 +184,7 @@ impl EventHandler for Game {
                 let piece_source_index = translate_to_index(source_x as usize, source_y as usize);
                 let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
-                if self.flipped_board {
+                if self.playing_as_white {
                     piece_dest_index =
                         flip_index(&(piece_dest_index as i32), BOARD_SIZE as i32) as usize;
                 }
@@ -191,13 +208,14 @@ impl EventHandler for Game {
 
                 let valid_moves = get_valid_move_indices(self, &piece, piece_source_index);
                 println!("Valid moves: {:?}", valid_moves);
-                if valid_moves.contains(&piece_dest_index) {
+                if valid_moves.contains(&piece_dest_index) && self.active_turn {
                     println!("Move to index {} is valid", piece_dest_index);
                     self.move_piece(piece, piece_dest_index);
                     self.connection.send(
                         "opponent",
                         &format!("{}:{}", piece_source_index, piece_dest_index),
                     );
+
                 } else {
                     println!("Move to index {} is NOT valid", piece_dest_index);
                     // // Reset position to source

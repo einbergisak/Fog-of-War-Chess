@@ -62,7 +62,7 @@ fn main() {
         graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, 800.0, 800.0))
             .expect("screen coord fail");
 
-        let mut game = Game::new(&mut ctx);
+        let mut game = Game::new(&mut ctx, true);
 
         let mut command_buffer = String::new();
         let mut payload_buffer = String::new();
@@ -79,6 +79,8 @@ fn main() {
             println!("Room code?: ");
             stdin.read_line(&mut payload_buffer).expect("Could not readline");
             game.connection.send("join_room", &payload_buffer);
+            // If playing as black, since white starts
+            game.active_turn = false;
         }
 
         // Run!
