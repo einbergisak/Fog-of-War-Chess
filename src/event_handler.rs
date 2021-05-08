@@ -181,12 +181,13 @@ impl EventHandler for Game {
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
-                let piece_source_index = translate_to_index(source_x as usize, source_y as usize);
+                let mut piece_source_index = translate_to_index(source_x as usize, source_y as usize);
                 let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
                 if self.playing_as_white {
                     piece_dest_index =
                         flip_index(&(piece_dest_index as i32), BOARD_SIZE as i32) as usize;
+                    piece_source_index = flip_index(&(piece_source_index as i32), BOARD_SIZE as i32) as usize;
                 }
 
                 // Out of bounds checking

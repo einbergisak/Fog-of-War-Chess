@@ -24,7 +24,7 @@ impl Game {
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
-            playing_as_white: false,
+            playing_as_white,
             board_mesh: Game::get_board_mesh(ctx),
             connection: Networking::new(),
             active_turn: playing_as_white

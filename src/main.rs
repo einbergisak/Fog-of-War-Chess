@@ -81,6 +81,7 @@ fn main() {
             game.connection.send("join_room", &payload_buffer);
             // If playing as black, since white starts
             game.active_turn = false;
+            game.playing_as_white = false;
         }
 
         // Run!
