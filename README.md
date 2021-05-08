@@ -20,6 +20,7 @@ Upplägg:
   * Nätverk (server NodeJS)
 
 * Andra veckan:
+  * Movement indication
   * Player implementation
     * Turn-system: Spelare kan endast flytta sina egna pjäser på sin egen turn.
     * Win/lose system
@@ -34,4 +35,5 @@ Upplägg:
   * Pre-moves
   * See captured pieces
   * Resign-knapp
+  * Navigera genom historik av drag
   * Joina lobby som åskådare
