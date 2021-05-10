@@ -1,15 +1,6 @@
-use ggez::{
-    event::{EventHandler, MouseButton},
-    graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
-    nalgebra::Point2,
-    Context, GameResult,
-};
+use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::{Point, Point2}};
 
-use crate::{
-    piece::{get_piece_rect, get_valid_move_indices, Piece},
-    render_utilities::{flip_board, flip_index, translate_to_index},
-    Game, STATE,
-};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
@@ -30,8 +21,15 @@ impl EventHandler for Game {
         }
         Ok(())
     }
+
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
+
+        // If menu is active we don't bother showing the rest of the game
+        if self.menu.visible {
+            self.menu.render(ctx);
+            return graphics::present(ctx)
+        }
 
         // Draws the background board
         graphics::draw(ctx, &self.board_mesh, (Point2::<f32>::new(0.0, 0.0),))?;
@@ -103,6 +101,14 @@ impl EventHandler for Game {
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
             MouseButton::Left => {
+
+                 // UI logic
+                if self.menu.visible {
+                    return
+                }
+
+                //------------------------------------------------------
+
                 let (start_x, start_y) = (0.0, 0.0);
 
                 // Cursor out of bounds checking
@@ -161,6 +167,9 @@ impl EventHandler for Game {
             MouseButton::Left => {
 
                 // UI logic
+                if self.menu.visible {
+                    return
+                }
 
                 //------------------------------------------------------
 
@@ -225,5 +234,9 @@ impl EventHandler for Game {
             }
             _ => {}
         }
+    }
+
+    fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
+        self.menu.on_mouse_move(ctx, x, y);
     }
 }

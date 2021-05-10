@@ -22,6 +22,11 @@ mod networking {
     pub mod connection;
     pub mod events;
 }
+mod menu {
+    pub mod menu_state;
+    pub mod clickable;
+    pub mod menu_utilities;
+}
 
 #[derive(Debug)]
 pub(crate) struct State {
@@ -30,6 +35,8 @@ pub(crate) struct State {
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
+const SCREEN_WIDTH: i32 = 800;
+const SCREEN_HEIGHT: i32 = 800;
 
 fn main() {
     let app_state = State {
@@ -68,7 +75,7 @@ fn main() {
         let mut payload_buffer = String::new();
         let stdin = io::stdin();
 
-        command_buffer.clear();
+        /* command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
         stdin.read_line(&mut command_buffer).expect("Could not read line");
@@ -82,7 +89,7 @@ fn main() {
             // If playing as black, since white starts
             game.active_turn = false;
             game.playing_as_white = false;
-        }
+        } */
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {

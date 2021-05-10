@@ -1,9 +1,6 @@
-use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
-    Context,
-};
+use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
 
-use crate::{default_board_state::generate_default_board, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{default_board_state::generate_default_board, menu::{clickable::Clickable, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -12,19 +9,42 @@ pub(crate) struct Game {
     pub(crate) grabbed_piece: Option<(Piece, (usize, usize))>,
     pub(crate) playing_as_white: bool,
     pub(crate) board_mesh: Mesh,
+    pub(crate) active_turn: bool,
     pub(crate) connection: Networking,
-    pub(crate) active_turn: bool
+    pub(crate) menu: Menu,
 }
 
 impl Game {
     pub(crate) fn new(ctx: &mut Context, playing_as_white: bool) -> Game {
+
+        let mut menu = Menu::new();
+        menu.clickables.push(Clickable {
+            x: 50,
+            y: 50,
+            width: 300,
+            height: 100,
+            color: Color::from_rgb(100, 100, 100),
+            hovered: false,
+            text: Text::new(ggez::graphics::TextFragment::new("Hello"))
+        });
+        menu.clickables.push(Clickable {
+            x: 500,
+            y: 300,
+            width: 300,
+            height: 100,
+            color: Color::from_rgb(100, 200, 100),
+            hovered: false,
+            text: Text::new(ggez::graphics::TextFragment::new("Hello"))
+        });
+
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
             playing_as_white,
             board_mesh: Game::get_board_mesh(ctx),
+            active_turn: playing_as_white,
             connection: Networking::new(),
-            active_turn: playing_as_white
+            menu
         }
     }
 
