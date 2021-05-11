@@ -24,7 +24,7 @@ pub(crate) fn generate_default_board() -> Board {
     // White pawns
     for i in 8..16 {
         board[i] = Some(Piece {
-            piece_type: Pawn,
+            piece_type: Pawn(false),
             color: White,
         });
     }
@@ -32,7 +32,7 @@ pub(crate) fn generate_default_board() -> Board {
     // Black pawns
     for i in 48..56 {
         board[i] = Some(Piece {
-            piece_type: Pawn,
+            piece_type: Pawn(false),
             color: Black,
         });
     }

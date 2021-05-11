@@ -17,6 +17,13 @@ pub(crate) struct Game {
     pub(crate) board_mesh: Mesh,
     pub(crate) connection: Networking,
     pub(crate) active_turn: bool,
+    pub(crate) move_history: Vec<Move>,
+}
+
+pub(crate) struct Move {
+    pub(crate) piece: Piece,
+    pub(crate) piece_source_index: usize,
+    pub(crate) piece_dest_index: usize,
 }
 
 impl Game {
@@ -28,6 +35,7 @@ impl Game {
             board_mesh: Game::get_board_mesh(ctx),
             connection: Networking::new(),
             active_turn: playing_as_white,
+            move_history: Vec::new(),
         }
     }
 
@@ -83,6 +91,15 @@ impl Game {
         piece_source_index: usize,
         piece_dest_index: usize,
     ) {
+        self.move_history.push(Move {
+            piece: piece.clone(),
+            piece_source_index,
+            piece_dest_index,
+        });
+
+        // Your turn is over once you've made a move
+        self.active_turn = !self.active_turn;
+
         // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
             Some(Piece {
@@ -100,52 +117,59 @@ impl Game {
             _ => {}
         }
 
-        // If a rook is moved for the first time its inner value is changed to true, indicating that it has moved and cannot be castled with.
-        if let Piece {
-            piece_type: Rook(false),
-            color: _,
-        } = &mut piece
-        {
-            piece.piece_type = Rook(true);
+        match &mut piece {
+            // If a pawn is moved for the first time its inner value is changed to true, indicating that it has moved and can no longer move two steps in one move.
+            Piece {
+                piece_type: Pawn(false),
+                color: _,
+            } => piece.piece_type = Pawn(true),
+
+            // If a rook is moved for the first time its inner value is changed to true, indicating that it has moved and cannot be castled with.
+            Piece {
+                piece_type: Rook(false),
+                color: _,
+            } => piece.piece_type = Rook(true),
+
+            // Checks if a king is attempting to castle (Hasn't moved before and is attempting to move two or more squares)
+            Piece {
+                piece_type: King(false),
+                color: _,
+            } => {
+                // Declares that the king has moved
+                piece.piece_type = King(true);
+
+                // Indices of possible castling moves (either moving onto the rook or two steps towards it)
+                let (rook_kingside, rook_queenside) =
+                    (piece_source_index - 3, piece_source_index + 4);
+                let (two_steps_kingside, two_steps_queenside) =
+                    (piece_source_index - 2, piece_source_index + 2);
+
+                // If attempting to castle kingside
+                if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
+                    let rook = self.board[rook_kingside].take().unwrap();
+                    self.board[two_steps_kingside] = Some(piece);
+                    self.board[piece_source_index - 1] = Some(rook);
+                }
+                // If attempting to castle queenside
+                else if piece_dest_index == two_steps_queenside
+                    || piece_dest_index == rook_queenside
+                {
+                    let rook = self.board[rook_queenside].take().unwrap();
+                    self.board[two_steps_queenside] = Some(piece);
+                    self.board[piece_source_index + 1] = Some(rook);
+                }
+                // If moving the king for the first time, but not attempting to castle
+                else {
+                    self.board[piece_dest_index] = Some(piece)
+                }
+                // Return since the King has been moved
+                return;
+            }
+            _ => {}
         }
 
-        // Checks if a king is attempting to castle (Hasn't moved before and is attempting to move two or more squares)
-        if let Piece {
-            piece_type: King(false),
-            color: _,
-        } = &piece
-        {
-            // Declares that the king has moved
-            piece.piece_type = King(true);
-
-            // Indices of possible castling moves (either moving onto the rook or two steps towards it)
-            let (rook_kingside, rook_queenside) = (piece_source_index - 3, piece_source_index + 4);
-            let (two_steps_kingside, two_steps_queenside) =
-                (piece_source_index - 2, piece_source_index + 2);
-
-            // If attempting to castle kingside
-            if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
-                let rook = self.board[rook_kingside].take().unwrap();
-                self.board[two_steps_kingside] = Some(piece);
-                self.board[piece_source_index - 1] = Some(rook);
-            }
-            // If attempting to castle queenside
-            else if piece_dest_index == two_steps_queenside || piece_dest_index == rook_queenside
-            {
-                let rook = self.board[rook_queenside].take().unwrap();
-                self.board[two_steps_queenside] = Some(piece);
-                self.board[piece_source_index + 1] = Some(rook);
-            }
-            // If moving the king for the first time, but not attempting to castle
-            else {
-                self.board[piece_dest_index] = Some(piece)
-            }
-        } else {
-            self.board[piece_dest_index] = Some(piece)
-        }
-
-        // Your turn is over once you've made a move
-        self.active_turn = !self.active_turn;
+        // Places the piece on the board
+        self.board[piece_dest_index] = Some(piece)
     }
 
     fn game_over(&mut self, winning_color: piece::Color) {

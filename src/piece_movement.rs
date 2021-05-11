@@ -242,74 +242,49 @@ pub(crate) fn pawn_valid_moves(
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = translate_to_coords(piece_source_index);
 
-    if let White = piece.color {
-        // White pawns move in positive y direction
-        if y == 1
-            && board[translate_to_index(x, y + 1)].is_none()
-            && board[translate_to_index(x, y + 2)].is_none()
-        {
-            // Ability to move two spaces in the positive y direction on its first move
-            indices.push(translate_to_index(x, y + 2))
-        }
-        if y < BOARD_SIZE - 1 {
-            if board[translate_to_index(x, y + 1)].is_none() {
-                // Regular move 1 square forwards
-                indices.push(translate_to_index(x, y + 1))
-            }
-            if x > 0 {
-                // Pawn capture, diagonally in negative x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: Black,
-                }) = board[translate_to_index(x - 1, y + 1)]
-                {
-                    indices.push(translate_to_index(x - 1, y + 1))
-                }
-            }
-            if x < BOARD_SIZE - 1 {
-                // Pawn capture, diagonally in positive x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: Black,
-                }) = board[translate_to_index(x + 1, y + 1)]
-                {
-                    indices.push(translate_to_index(x + 1, y + 1))
-                }
-            }
-        }
+    let direction: i32 = if let White = piece.color {
+        // White pawn moves in positive y direction
+        1
     } else {
-        // Black pawns move in negative y direction
-        if y == BOARD_SIZE - 2
-            && board[translate_to_index(x, y - 1)].is_none()
-            && board[translate_to_index(x, y - 2)].is_none()
-        {
-            // Ability to move two spaces forward on its first move
-            indices.push(translate_to_index(x, y - 2))
+        // Black pawn moves in negative y direction
+        -1
+    };
+
+    let one_forwards = (y as i32 + 1 * direction) as usize;
+    let two_forwards = (y as i32 + 2 * direction) as usize;
+
+    // If there is no piece blocking the pawn
+    if board[translate_to_index(x, one_forwards)].is_none() {
+        // Lets the pawn move two spaces forwards on its first move
+        if piece.piece_type == Pawn(false) && board[translate_to_index(x, two_forwards)].is_none() {
+            indices.push(translate_to_index(x, two_forwards))
         }
-        if y > 0 {
-            if board[translate_to_index(x, y - 1)].is_none() {
-                // Regular move 1 square forwards
-                indices.push(translate_to_index(x, y - 1))
+        // Regular move 1 square forwards
+        indices.push(translate_to_index(x, one_forwards));
+    }
+
+    // Pawn capture, diagonally in negative x direction (kingside)
+    if x > 0 {
+        if let Some(Piece {
+            piece_type: _,
+            color,
+        }) = board[translate_to_index(x - 1, one_forwards)]
+        {
+            if color != piece.color {
+                indices.push(translate_to_index(x - 1, one_forwards))
             }
-            if x > 0 {
-                // Pawn capture, diagonally in negative x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: White,
-                }) = board[translate_to_index(x - 1, y - 1)]
-                {
-                    indices.push(translate_to_index(x - 1, y - 1))
-                }
-            }
-            if x < BOARD_SIZE - 1 {
-                // Pawn capture, diagonally in positive x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: White,
-                }) = board[translate_to_index(x + 1, y - 1)]
-                {
-                    indices.push(translate_to_index(x + 1, y - 1))
-                }
+        }
+    }
+
+    // Pawn capture, diagonally in positive x direction (queenside)
+    if x < BOARD_SIZE - 1 {
+        if let Some(Piece {
+            piece_type: _,
+            color,
+        }) = board[translate_to_index(x + 1, one_forwards)]
+        {
+            if color != piece.color {
+                indices.push(translate_to_index(x + 1, one_forwards))
             }
         }
     }

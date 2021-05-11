@@ -16,14 +16,14 @@ pub(crate) enum Color {
     Black,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum PieceType {
-    King(bool), // Inner boolean which is true if the king has moved
+    King(bool), // Inner boolean which is true if the king has moved (used for castling)
     Queen,
-    Rook(bool), // Inner boolean which is true if the rook has moved
+    Rook(bool), // Inner boolean which is true if the rook has moved (used for castling)
     Bishop,
     Knight,
-    Pawn,
+    Pawn(bool), // Inner boolean which is true if the pawn has moved (pawns can move two steps on their first move)
 }
 
 #[derive(Clone, Debug)]
@@ -43,7 +43,7 @@ pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
         PieceType::Bishop => 2.0 / 6.0,
         PieceType::Knight => 3.0 / 6.0,
         PieceType::Rook(_) => 4.0 / 6.0,
-        PieceType::Pawn => 5.0 / 6.0,
+        PieceType::Pawn(_) => 5.0 / 6.0,
     };
 
     Rect::new(src_image_x, src_image_y, 1.0 / 6.0, 0.5)
@@ -83,6 +83,6 @@ pub(crate) fn get_valid_move_indices(
         PieceType::Knight => knight_valid_moves(board, piece, piece_source_index),
 
         // Pawn move one square forwards, and captures one square diagonally forwards. It can move two squares forward on its first move.
-        PieceType::Pawn => pawn_valid_moves(board, piece, piece_source_index),
+        PieceType::Pawn(_) => pawn_valid_moves(board, piece, piece_source_index),
     }
 }
