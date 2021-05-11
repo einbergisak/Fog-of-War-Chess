@@ -83,6 +83,8 @@ pub(crate) fn get_valid_move_indices(
         PieceType::Knight => knight_valid_moves(board, piece, piece_source_index),
 
         // Pawn move one square forwards, and captures one square diagonally forwards. It can move two squares forward on its first move.
-        PieceType::Pawn(_) => pawn_valid_moves(board, piece, piece_source_index),
+        PieceType::Pawn(_) => {
+            pawn_valid_moves(board, piece, piece_source_index, &game.move_history)
+        }
     }
 }

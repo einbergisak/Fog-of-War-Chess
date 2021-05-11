@@ -6,6 +6,7 @@ use ggez::{
 use crate::{
     default_board_state::generate_default_board,
     piece::{self, Board, Color::*, Piece, PieceType::*},
+    render_utilities::{translate_to_coords, translate_to_index},
 };
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
@@ -123,6 +124,33 @@ impl Game {
                 piece_type: Pawn(false),
                 color: _,
             } => piece.piece_type = Pawn(true),
+
+            Piece {
+                piece_type: Pawn(true),
+                color,
+            } => {
+                let (x, y) = translate_to_coords(piece_source_index);
+                match color {
+                    White => {
+                        if (piece_dest_index == translate_to_index(x - 1, y + 1)
+                            && self.board[translate_to_index(x - 1, y + 1)].is_none())
+                            || (piece_dest_index == translate_to_index(x + 1, y + 1)
+                                && self.board[translate_to_index(x + 1, y + 1)].is_none())
+                        {
+                            self.board[piece_dest_index - 8] = None;
+                        }
+                    }
+                    Black => {
+                        if (piece_dest_index == translate_to_index(x - 1, y - 1)
+                            && self.board[translate_to_index(x - 1, y - 1)].is_none())
+                            || (piece_dest_index == translate_to_index(x + 1, y - 1)
+                                && self.board[translate_to_index(x + 1, y - 1)].is_none())
+                        {
+                            self.board[piece_dest_index + 8] = None;
+                        }
+                    }
+                }
+            }
 
             // If a rook is moved for the first time its inner value is changed to true, indicating that it has moved and cannot be castled with.
             Piece {

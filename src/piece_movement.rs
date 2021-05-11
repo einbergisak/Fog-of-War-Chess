@@ -1,5 +1,6 @@
 use crate::{
     event_handler::BOARD_SIZE,
+    game::Move,
     piece::{Board, Color::*, Piece, PieceType::*},
     render_utilities::{translate_to_coords, translate_to_index},
 };
@@ -238,11 +239,12 @@ pub(crate) fn pawn_valid_moves(
     board: &Board,
     piece: &Piece,
     piece_source_index: usize,
+    move_history: &Vec<Move>,
 ) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = translate_to_coords(piece_source_index);
 
-    let direction: i32 = if let White = piece.color {
+    let y_direction: i32 = if let White = piece.color {
         // White pawn moves in positive y direction
         1
     } else {
@@ -250,8 +252,8 @@ pub(crate) fn pawn_valid_moves(
         -1
     };
 
-    let one_forwards = (y as i32 + 1 * direction) as usize;
-    let two_forwards = (y as i32 + 2 * direction) as usize;
+    let one_forwards = (y as i32 + 1 * y_direction) as usize;
+    let two_forwards = (y as i32 + 2 * y_direction) as usize;
 
     // If there is no piece blocking the pawn
     if board[translate_to_index(x, one_forwards)].is_none() {
@@ -263,30 +265,52 @@ pub(crate) fn pawn_valid_moves(
         indices.push(translate_to_index(x, one_forwards));
     }
 
-    // Pawn capture, diagonally in negative x direction (kingside)
-    if x > 0 {
+    let mut pawn_capture = |x_direction: i32| {
+        let adjacent_x = (x as i32 + x_direction) as usize;
+
+        // Regular diagonal capture
         if let Some(Piece {
             piece_type: _,
-            color,
-        }) = board[translate_to_index(x - 1, one_forwards)]
+            color: other_color,
+        }) = board[translate_to_index(adjacent_x, one_forwards)].as_ref()
         {
-            if color != piece.color {
-                indices.push(translate_to_index(x - 1, one_forwards))
+            if &piece.color != other_color {
+                indices.push(translate_to_index(adjacent_x, one_forwards))
             }
         }
+
+        // En passant capture
+        if (piece.color == White && y == 4) || (piece.color == Black && y == 3) {
+            if let Some(Move {
+                piece:
+                    Piece {
+                        piece_type: Pawn(false),
+                        color: other_color,
+                    },
+                piece_source_index,
+                piece_dest_index,
+            }) = move_history.last()
+            {
+                if *piece_source_index == translate_to_index(adjacent_x, two_forwards)
+                    && *piece_dest_index == translate_to_index(adjacent_x, y)
+                    && &piece.color != other_color
+                {
+                    indices.push(translate_to_index(adjacent_x, one_forwards))
+                }
+            }
+        }
+    };
+
+    // If the pawn is not on the edge of the board (kingside)
+    if x > 0 {
+        // Pawn capture, diagonally in negative x direction (kingside)
+        pawn_capture(-1)
     }
 
-    // Pawn capture, diagonally in positive x direction (queenside)
+    // If the pawn is not on the edge of the board (queenside)
     if x < BOARD_SIZE - 1 {
-        if let Some(Piece {
-            piece_type: _,
-            color,
-        }) = board[translate_to_index(x + 1, one_forwards)]
-        {
-            if color != piece.color {
-                indices.push(translate_to_index(x + 1, one_forwards))
-            }
-        }
+        // Pawn capture, diagonally in positive x direction (queenside)
+        pawn_capture(1)
     }
 
     indices
