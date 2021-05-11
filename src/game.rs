@@ -5,6 +5,8 @@ use ggez::{
 
 use crate::{
     default_board_state::generate_default_board,
+    event_handler::BOARD_SIZE,
+    game::MoveType::*,
     piece::{self, Board, Color::*, Piece, PieceType::*},
     render_utilities::{translate_to_coords, translate_to_index},
 };
@@ -19,12 +21,23 @@ pub(crate) struct Game {
     pub(crate) connection: Networking,
     pub(crate) active_turn: bool,
     pub(crate) move_history: Vec<Move>,
+    pub(crate) promoting_pawn: Option<Move>,
 }
 
+#[derive(Debug)]
 pub(crate) struct Move {
     pub(crate) piece: Piece,
-    pub(crate) piece_source_index: usize,
     pub(crate) piece_dest_index: usize,
+    pub(crate) captured_piece: Option<Piece>,
+    pub(crate) move_type: MoveType,
+}
+
+#[derive(Debug)]
+pub(crate) enum MoveType {
+    Regular,
+    EnPassant,
+    Promotion,
+    Castle,
 }
 
 impl Game {
@@ -37,6 +50,7 @@ impl Game {
             connection: Networking::new(),
             active_turn: playing_as_white,
             move_history: Vec::new(),
+            promoting_pawn: None,
         }
     }
 
@@ -75,7 +89,11 @@ impl Game {
         mesh
     }
 
-    pub(crate) fn move_piece_index(&mut self, piece_source_index: usize, piece_dest_index: usize) {
+    pub(crate) fn move_piece_from_board(
+        &mut self,
+        piece_source_index: usize,
+        piece_dest_index: usize,
+    ) {
         println!(
             "Took: {} {:?}",
             piece_source_index, self.board[piece_source_index]
@@ -83,21 +101,10 @@ impl Game {
         let piece = self.board[piece_source_index]
             .take()
             .expect("Error moving piece");
-        self.move_piece(piece, piece_source_index, piece_dest_index);
+        self.move_grabbed_piece(piece, piece_dest_index);
     }
 
-    pub(crate) fn move_piece(
-        &mut self,
-        mut piece: Piece,
-        piece_source_index: usize,
-        piece_dest_index: usize,
-    ) {
-        self.move_history.push(Move {
-            piece: piece.clone(),
-            piece_source_index,
-            piece_dest_index,
-        });
-
+    pub(crate) fn move_grabbed_piece(&mut self, mut piece: Piece, piece_dest_index: usize) {
         // Your turn is over once you've made a move
         self.active_turn = !self.active_turn;
 
@@ -106,49 +113,57 @@ impl Game {
             Some(Piece {
                 color: White,
                 piece_type: King(_),
+                index: _,
             }) => {
                 self.game_over(Black);
             }
             Some(Piece {
                 color: Black,
                 piece_type: King(_),
+                index: _,
             }) => {
                 self.game_over(White);
             }
             _ => {}
         }
 
-        match &mut piece {
+        match &piece {
             // If a pawn is moved for the first time its inner value is changed to true, indicating that it has moved and can no longer move two steps in one move.
             Piece {
                 piece_type: Pawn(false),
                 color: _,
+                index: _,
             } => piece.piece_type = Pawn(true),
 
+            // En passant
             Piece {
                 piece_type: Pawn(true),
                 color,
+                index: _,
             } => {
-                let (x, y) = translate_to_coords(piece_source_index);
-                match color {
-                    White => {
-                        if (piece_dest_index == translate_to_index(x - 1, y + 1)
-                            && self.board[translate_to_index(x - 1, y + 1)].is_none())
-                            || (piece_dest_index == translate_to_index(x + 1, y + 1)
-                                && self.board[translate_to_index(x + 1, y + 1)].is_none())
-                        {
-                            self.board[piece_dest_index - 8] = None;
-                        }
-                    }
-                    Black => {
-                        if (piece_dest_index == translate_to_index(x - 1, y - 1)
-                            && self.board[translate_to_index(x - 1, y - 1)].is_none())
-                            || (piece_dest_index == translate_to_index(x + 1, y - 1)
-                                && self.board[translate_to_index(x + 1, y - 1)].is_none())
-                        {
-                            self.board[piece_dest_index + 8] = None;
-                        }
-                    }
+                let (x, y) = piece.get_pos();
+
+                // If a pawn is to move diagonally without capturing, it must be attempting en passant
+                if ((*color == White
+                    && (piece_dest_index == translate_to_index(x - 1, y + 1)
+                        || piece_dest_index == translate_to_index(x + 1, y + 1)))
+                    || (*color == Black
+                        && (piece_dest_index == translate_to_index(x - 1, y - 1)
+                            || piece_dest_index == translate_to_index(x + 1, y - 1))))
+                    && self.board[piece_dest_index].is_none()
+                {
+                    // Captures the piece behind its destination tile
+                    let captured_piece = self.board[piece_dest_index - BOARD_SIZE].take();
+                    self.move_history.push(Move {
+                        piece: piece.clone(),
+                        piece_dest_index,
+                        captured_piece,
+                        move_type: EnPassant,
+                    });
+                    let mut piece = piece.to_owned();
+                    piece.index = piece_dest_index;
+                    self.board[piece_dest_index] = Some(piece);
+                    return;
                 }
             }
 
@@ -156,48 +171,70 @@ impl Game {
             Piece {
                 piece_type: Rook(false),
                 color: _,
+                index: _,
             } => piece.piece_type = Rook(true),
 
             // Checks if a king is attempting to castle (Hasn't moved before and is attempting to move two or more squares)
             Piece {
                 piece_type: King(false),
                 color: _,
+                index: _,
             } => {
                 // Declares that the king has moved
                 piece.piece_type = King(true);
-
+                let piece_source_index = piece.get_index();
                 // Indices of possible castling moves (either moving onto the rook or two steps towards it)
                 let (rook_kingside, rook_queenside) =
                     (piece_source_index - 3, piece_source_index + 4);
                 let (two_steps_kingside, two_steps_queenside) =
                     (piece_source_index - 2, piece_source_index + 2);
 
+                let mut castle = |rook_pos: usize| {
+                    let (two_steps_towards_rook, direction) =
+                        if translate_to_coords(rook_pos).0 == 0 {
+                            (two_steps_kingside, -1)
+                        } else {
+                            (two_steps_queenside, 1)
+                        };
+                    let mut rook = self.board[rook_pos].take().unwrap();
+                    self.move_history.push(Move {
+                        piece: piece.clone(),
+                        piece_dest_index,
+                        captured_piece: None,
+                        move_type: Castle,
+                    });
+                    let mut piece = piece.clone();
+                    piece.index = two_steps_towards_rook;
+                    rook.index = (piece_source_index as i32 + direction) as usize;
+                    self.board[two_steps_towards_rook] = Some(piece);
+                    self.board[(piece_source_index as i32 + direction) as usize] = Some(rook);
+                };
+
                 // If attempting to castle kingside
                 if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
-                    let rook = self.board[rook_kingside].take().unwrap();
-                    self.board[two_steps_kingside] = Some(piece);
-                    self.board[piece_source_index - 1] = Some(rook);
+                    castle(rook_kingside);
+                    return;
                 }
                 // If attempting to castle queenside
                 else if piece_dest_index == two_steps_queenside
                     || piece_dest_index == rook_queenside
                 {
-                    let rook = self.board[rook_queenside].take().unwrap();
-                    self.board[two_steps_queenside] = Some(piece);
-                    self.board[piece_source_index + 1] = Some(rook);
+                    castle(rook_queenside);
+                    return;
                 }
-                // If moving the king for the first time, but not attempting to castle
-                else {
-                    self.board[piece_dest_index] = Some(piece)
-                }
-                // Return since the King has been moved
-                return;
             }
             _ => {}
         }
-
-        // Places the piece on the board
-        self.board[piece_dest_index] = Some(piece)
+        // Places the piece on the board, returning a possible captured piece
+        let captured_piece = self.board[piece_dest_index].take();
+        self.move_history.push(Move {
+            piece: piece.clone(),
+            piece_dest_index,
+            captured_piece,
+            move_type: Regular,
+        });
+        piece.index = piece_dest_index;
+        self.board[piece_dest_index] = Some(piece);
     }
 
     fn game_over(&mut self, winning_color: piece::Color) {

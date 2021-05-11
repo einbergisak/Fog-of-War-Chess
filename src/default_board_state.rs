@@ -18,22 +18,25 @@ pub(crate) fn generate_default_board() -> Board {
         board[index] = Some(Piece {
             piece_type: piece_type.to_owned(),
             color: White,
+            index,
         })
     }
 
     // White pawns
-    for i in 8..16 {
-        board[i] = Some(Piece {
+    for index in 8..16 {
+        board[index] = Some(Piece {
             piece_type: Pawn(false),
             color: White,
+            index,
         });
     }
 
     // Black pawns
-    for i in 48..56 {
-        board[i] = Some(Piece {
+    for index in 48..56 {
+        board[index] = Some(Piece {
             piece_type: Pawn(false),
             color: Black,
+            index,
         });
     }
 
@@ -42,6 +45,7 @@ pub(crate) fn generate_default_board() -> Board {
         board[index + 56] = Some(Piece {
             piece_type: piece_type.to_owned(),
             color: Black,
+            index: index + 56,
         })
     }
     board

@@ -2,18 +2,14 @@ use crate::{
     event_handler::BOARD_SIZE,
     game::Move,
     piece::{Board, Color::*, Piece, PieceType::*},
-    render_utilities::{translate_to_coords, translate_to_index},
+    render_utilities::translate_to_index,
 };
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn rook_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
 
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Check row x+
     if x < BOARD_SIZE - 1 {
@@ -59,13 +55,9 @@ pub(crate) fn rook_valid_moves(
 }
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn bishop_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn bishop_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Towards x+ y+
     for (dest_x, dest_y) in (x..BOARD_SIZE).zip(y..BOARD_SIZE) {
@@ -106,13 +98,9 @@ pub(crate) fn bishop_valid_moves(
     indices
 }
 
-pub(crate) fn knight_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Move 2 steps towards y- then 1 step horizontally
     if y > 1 {
@@ -165,13 +153,9 @@ pub(crate) fn knight_valid_moves(
     indices
 }
 
-pub(crate) fn king_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn king_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     for xd in -1..=1 {
         for yd in -1..=1 {
@@ -197,12 +181,15 @@ pub(crate) fn king_valid_moves(
     if let Piece {
         piece_type: King(false), // King(false) is a king that hasn't moved.
         color: king_color,
+        index: _,
     } = piece
     {
+        let piece_source_index = piece.get_index();
         'rook_loop: for rook_index in [piece_source_index - 3, piece_source_index + 4].iter() {
             if let Some(Piece {
                 piece_type: Rook(false), // Rook(false) is a rook that hasn't moved
                 color: rook_color,
+                index: _,
             }) = board[*rook_index].as_ref()
             {
                 if rook_color == king_color {
@@ -238,11 +225,10 @@ pub(crate) fn king_valid_moves(
 pub(crate) fn pawn_valid_moves(
     board: &Board,
     piece: &Piece,
-    piece_source_index: usize,
     move_history: &Vec<Move>,
 ) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     let y_direction: i32 = if let White = piece.color {
         // White pawn moves in positive y direction
@@ -272,6 +258,7 @@ pub(crate) fn pawn_valid_moves(
         if let Some(Piece {
             piece_type: _,
             color: other_color,
+            index: _,
         }) = board[translate_to_index(adjacent_x, one_forwards)].as_ref()
         {
             if &piece.color != other_color {
@@ -281,22 +268,27 @@ pub(crate) fn pawn_valid_moves(
 
         // En passant capture
         if (piece.color == White && y == 4) || (piece.color == Black && y == 3) {
+            println!("Last move: {:?}", move_history.last());
             if let Some(Move {
                 piece:
                     Piece {
-                        piece_type: Pawn(false),
+                        piece_type: Pawn(_),
                         color: other_color,
+                        index: other_pawn_previous_index,
                     },
-                piece_source_index,
-                piece_dest_index,
+                piece_dest_index: other_pawn_current_index,
+                captured_piece: _,
+                move_type: _,
             }) = move_history.last()
             {
-                if *piece_source_index == translate_to_index(adjacent_x, two_forwards)
-                    && *piece_dest_index == translate_to_index(adjacent_x, y)
+                if *other_pawn_previous_index == translate_to_index(adjacent_x, two_forwards)
+                    && *other_pawn_current_index == translate_to_index(adjacent_x, y)
                     && &piece.color != other_color
                 {
+                    println!("Yeet 2");
                     indices.push(translate_to_index(adjacent_x, one_forwards))
                 }
+                println!("Yeet 3");
             }
         }
     };
