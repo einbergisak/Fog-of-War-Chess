@@ -18,9 +18,9 @@ pub(crate) enum Color {
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum PieceType {
-    King,
+    King(bool), // Inner boolean which is true if the king has moved
     Queen,
-    Rook,
+    Rook(bool), // Inner boolean which is true if the rook has moved
     Bishop,
     Knight,
     Pawn,
@@ -38,11 +38,11 @@ pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
         Color::Black => 0.5,
     };
     let src_image_x = match piece.piece_type {
-        PieceType::King => 0.0,
+        PieceType::King(_) => 0.0,
         PieceType::Queen => 1.0 / 6.0,
         PieceType::Bishop => 2.0 / 6.0,
         PieceType::Knight => 3.0 / 6.0,
-        PieceType::Rook => 4.0 / 6.0,
+        PieceType::Rook(_) => 4.0 / 6.0,
         PieceType::Pawn => 5.0 / 6.0,
     };
 
@@ -64,7 +64,7 @@ pub(crate) fn get_valid_move_indices(
     // Returns a list of the valid moves
     match piece.piece_type {
         // King moves one square in any direction
-        PieceType::King => king_valid_moves(board, piece, piece_source_index),
+        PieceType::King(_) => king_valid_moves(board, piece, piece_source_index),
 
         // Queen moves diagonally, vertically or horizontally (Rook + Bishop)
         PieceType::Queen => {
@@ -74,7 +74,7 @@ pub(crate) fn get_valid_move_indices(
         }
 
         // Rook moves vertically or horizontally
-        PieceType::Rook => rook_valid_moves(board, piece, piece_source_index),
+        PieceType::Rook(_) => rook_valid_moves(board, piece, piece_source_index),
 
         // Bishop moves diagonally
         PieceType::Bishop => bishop_valid_moves(board, piece, piece_source_index),

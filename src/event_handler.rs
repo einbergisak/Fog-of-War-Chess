@@ -128,11 +128,11 @@ impl EventHandler for Game {
                     match &piece.color {
                         crate::piece::Color::White if !self.playing_as_white => {
                             self.board[index] = Some(piece);
-                            return
+                            return;
                         }
                         crate::piece::Color::Black if self.playing_as_white => {
                             self.board[index] = Some(piece);
-                            return
+                            return;
                         }
                         _ => {}
                     }
@@ -159,7 +159,6 @@ impl EventHandler for Game {
     ) {
         match button {
             MouseButton::Left => {
-
                 // UI logic
 
                 //------------------------------------------------------
@@ -181,13 +180,15 @@ impl EventHandler for Game {
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
                 let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
-                let mut piece_source_index = translate_to_index(source_x as usize, source_y as usize);
+                let mut piece_source_index =
+                    translate_to_index(source_x as usize, source_y as usize);
                 let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
                 if self.playing_as_white {
                     piece_dest_index =
                         flip_index(&(piece_dest_index as i32), BOARD_SIZE as i32) as usize;
-                    piece_source_index = flip_index(&(piece_source_index as i32), BOARD_SIZE as i32) as usize;
+                    piece_source_index =
+                        flip_index(&(piece_source_index as i32), BOARD_SIZE as i32) as usize;
                 }
 
                 // Out of bounds checking
@@ -211,12 +212,11 @@ impl EventHandler for Game {
                 println!("Valid moves: {:?}", valid_moves);
                 if valid_moves.contains(&piece_dest_index) && self.active_turn {
                     println!("Move to index {} is valid", piece_dest_index);
-                    self.move_piece(piece, piece_dest_index);
+                    self.move_piece(piece, piece_source_index, piece_dest_index);
                     self.connection.send(
                         "opponent",
                         &format!("{}:{}", piece_source_index, piece_dest_index),
                     );
-
                 } else {
                     println!("Move to index {} is NOT valid", piece_dest_index);
                     // // Reset position to source

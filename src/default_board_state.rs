@@ -2,7 +2,16 @@ use crate::piece::{Board, Color::*, Piece, PieceType::*};
 
 pub(crate) fn generate_default_board() -> Board {
     let mut board = vec![None; 64];
-    let piece_order = [Rook, Knight, Bishop, King, Queen, Bishop, Knight, Rook];
+    let piece_order = [
+        Rook(false),
+        Knight,
+        Bishop,
+        King(false),
+        Queen,
+        Bishop,
+        Knight,
+        Rook(false),
+    ];
     // White pieces
 
     for (index, piece_type) in piece_order.iter().enumerate() {

@@ -71,13 +71,17 @@ fn main() {
         command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
-        stdin.read_line(&mut command_buffer).expect("Could not read line");
+        stdin
+            .read_line(&mut command_buffer)
+            .expect("Could not read line");
 
         if command_buffer.trim() == "c" {
             game.connection.send("create_room", "");
         } else {
             println!("Room code?: ");
-            stdin.read_line(&mut payload_buffer).expect("Could not readline");
+            stdin
+                .read_line(&mut payload_buffer)
+                .expect("Could not readline");
             game.connection.send("join_room", &payload_buffer);
             // If playing as black, since white starts
             game.active_turn = false;

@@ -1,6 +1,6 @@
 use crate::{
     event_handler::BOARD_SIZE,
-    piece::{Board, Color::*, Piece},
+    piece::{Board, Color::*, Piece, PieceType::*},
     render_utilities::{translate_to_coords, translate_to_index},
 };
 
@@ -188,6 +188,45 @@ pub(crate) fn king_valid_moves(
                     &mut indices,
                     board,
                 );
+            }
+        }
+    }
+
+    // Castling: The King can castle with a friendly rook so long as neither of the pieces have moved.
+    if let Piece {
+        piece_type: King(false), // King(false) is a king that hasn't moved.
+        color: king_color,
+    } = piece
+    {
+        'rook_loop: for rook_index in [piece_source_index - 3, piece_source_index + 4].iter() {
+            if let Some(Piece {
+                piece_type: Rook(false), // Rook(false) is a rook that hasn't moved
+                color: rook_color,
+            }) = board[*rook_index].as_ref()
+            {
+                if rook_color == king_color {
+                    if *rook_index < piece_source_index {
+                        // Check for pieces between the king and the kingside rook
+                        for index in (*rook_index + 1)..piece_source_index {
+                            if board[index].is_some() {
+                                // If there is a piece between the king and the kingside rook we continue to check the kingside rook
+                                continue 'rook_loop;
+                            }
+                        }
+                        indices.push(piece_source_index - 2); // Lets the player castle by moving two squares
+                        indices.push(*rook_index); // Lets the player castle by moving to the rook
+                    } else {
+                        // Check for pieces between the king and the queenside rook
+                        for index in (piece_source_index + 1)..*rook_index {
+                            if board[index].is_some() {
+                                // If there is a piece between the king and the queenside rook
+                                break 'rook_loop;
+                            }
+                        }
+                        indices.push(piece_source_index + 2); // Lets the player castle by moving two squares
+                        indices.push(*rook_index); // Lets the player castle by moving to the rook
+                    }
+                }
             }
         }
     }

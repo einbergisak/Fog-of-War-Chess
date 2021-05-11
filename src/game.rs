@@ -3,7 +3,10 @@ use ggez::{
     Context,
 };
 
-use crate::{default_board_state::generate_default_board, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{
+    default_board_state::generate_default_board,
+    piece::{self, Board, Color::*, Piece, PieceType::*},
+};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -13,7 +16,7 @@ pub(crate) struct Game {
     pub(crate) playing_as_white: bool,
     pub(crate) board_mesh: Mesh,
     pub(crate) connection: Networking,
-    pub(crate) active_turn: bool
+    pub(crate) active_turn: bool,
 }
 
 impl Game {
@@ -24,7 +27,7 @@ impl Game {
             playing_as_white,
             board_mesh: Game::get_board_mesh(ctx),
             connection: Networking::new(),
-            active_turn: playing_as_white
+            active_turn: playing_as_white,
         }
     }
 
@@ -71,23 +74,78 @@ impl Game {
         let piece = self.board[piece_source_index]
             .take()
             .expect("Error moving piece");
-        self.move_piece(piece, piece_dest_index);
+        self.move_piece(piece, piece_source_index, piece_dest_index);
     }
 
-    pub(crate) fn move_piece(&mut self, piece: Piece, piece_dest_index: usize) {
+    pub(crate) fn move_piece(
+        &mut self,
+        mut piece: Piece,
+        piece_source_index: usize,
+        piece_dest_index: usize,
+    ) {
+        // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
-            Some(Piece{color: White, piece_type: King}) => {
+            Some(Piece {
+                color: White,
+                piece_type: King(_),
+            }) => {
                 self.game_over(Black);
             }
-            Some(Piece{color: Black, piece_type: King}) => {
+            Some(Piece {
+                color: Black,
+                piece_type: King(_),
+            }) => {
                 self.game_over(White);
             }
             _ => {}
         }
 
+        // If a rook is moved for the first time its inner value is changed to true, indicating that it has moved and cannot be castled with.
+        if let Piece {
+            piece_type: Rook(false),
+            color: _,
+        } = &mut piece
+        {
+            piece.piece_type = Rook(true);
+        }
+
+        // Checks if a king is attempting to castle (Hasn't moved before and is attempting to move two or more squares)
+        if let Piece {
+            piece_type: King(false),
+            color: _,
+        } = &piece
+        {
+            // Declares that the king has moved
+            piece.piece_type = King(true);
+
+            // Indices of possible castling moves (either moving onto the rook or two steps towards it)
+            let (rook_kingside, rook_queenside) = (piece_source_index - 3, piece_source_index + 4);
+            let (two_steps_kingside, two_steps_queenside) =
+                (piece_source_index - 2, piece_source_index + 2);
+
+            // If attempting to castle kingside
+            if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
+                let rook = self.board[rook_kingside].take().unwrap();
+                self.board[two_steps_kingside] = Some(piece);
+                self.board[piece_source_index - 1] = Some(rook);
+            }
+            // If attempting to castle queenside
+            else if piece_dest_index == two_steps_queenside || piece_dest_index == rook_queenside
+            {
+                let rook = self.board[rook_queenside].take().unwrap();
+                self.board[two_steps_queenside] = Some(piece);
+                self.board[piece_source_index + 1] = Some(rook);
+            }
+            // If moving the king for the first time, but not attempting to castle
+            else {
+                self.board[piece_dest_index] = Some(piece)
+            }
+        } else {
+            self.board[piece_dest_index] = Some(piece)
+        }
+
         // Your turn is over once you've made a move
         self.active_turn = !self.active_turn;
-        self.board[piece_dest_index] = Some(piece);
     }
 
     fn game_over(&mut self, winning_color: piece::Color) {
