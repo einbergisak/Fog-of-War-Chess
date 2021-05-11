@@ -6,6 +6,9 @@ pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
 pub(crate) const BOARD_WIDTH: i32 = BOARD_SIZE as i32 * TILE_SIZE;
 
+pub(crate) const BOARD_ORIGO_X: f32 = SCREEN_WIDTH / 2.0 - (BOARD_WIDTH / 2) as f32;
+pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as f32;
+
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         while ggez::timer::check_update_time(ctx, 60) {
@@ -32,7 +35,7 @@ impl EventHandler for Game {
         }
 
         // Draws the background board
-        graphics::draw(ctx, &self.board_mesh, (Point2::<f32>::new(0.0, 0.0),))?;
+        graphics::draw(ctx, &self.board_mesh, (Point2::<f32>::new(BOARD_ORIGO_X, BOARD_ORIGO_Y),))?;
 
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image);
@@ -77,8 +80,8 @@ impl EventHandler for Game {
                     let y = index / BOARD_SIZE;
                     let x = index % BOARD_SIZE;
                     let param = DrawParam::default().src(rect).dest(Point2::new(
-                        (x as f32) * TILE_SIZE as f32,
-                        (y as f32) * TILE_SIZE as f32,
+                        (x as f32) * TILE_SIZE as f32 + BOARD_ORIGO_X,
+                        (y as f32) * TILE_SIZE as f32 + BOARD_ORIGO_Y,
                     ));
 
                     piece_batch.add(param);
@@ -109,14 +112,15 @@ impl EventHandler for Game {
 
                 //------------------------------------------------------
 
-                let (start_x, start_y) = (0.0, 0.0);
+                let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
 
                 // Cursor out of bounds checking
-                if start_x + x > BOARD_WIDTH as f32
-                    || start_y + y > BOARD_WIDTH as f32
+                if x > start_x + BOARD_WIDTH as f32
+                    || y > start_y + BOARD_WIDTH as f32
                     || x < start_x
                     || y < start_y
                 {
+                    println!("CLICK OUTSIDE {}", x);
                     return;
                 }
 
@@ -173,6 +177,9 @@ impl EventHandler for Game {
 
                 //------------------------------------------------------
 
+                ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
+                ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
+
                 let piece: Piece;
                 let source_x;
                 let source_y;
@@ -184,7 +191,7 @@ impl EventHandler for Game {
                 } else {
                     return;
                 }
-                let (start_x, start_y) = (0.0, 0.0);
+                let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
 
                 // Calculates list index (if in bounds) of the clicked tile
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
@@ -200,8 +207,8 @@ impl EventHandler for Game {
                 }
 
                 // Out of bounds checking
-                if start_x + x > BOARD_WIDTH as f32
-                    || start_y + y > BOARD_WIDTH as f32
+                if x - start_x > BOARD_WIDTH as f32
+                    || y - start_y > BOARD_WIDTH as f32
                     || x < start_x
                     || y < start_y
                 {
@@ -210,11 +217,9 @@ impl EventHandler for Game {
 
                     // Board index for the piece which the cursor is on
                     self.board[piece_source_index] = Some(piece);
+                    println!("Out of bounds");
                     return;
                 }
-
-                ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
-                ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
 
                 let valid_moves = get_valid_move_indices(self, &piece, piece_source_index);
                 println!("Valid moves: {:?}", valid_moves);

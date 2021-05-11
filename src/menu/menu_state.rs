@@ -11,7 +11,7 @@ pub(crate) struct Menu {
 impl Menu {
 	pub(crate) fn new() -> Menu {
 		Menu {
-			visible: true,
+			visible: false,
 			clickables: Vec::new(),
 			last_iteration_hover: false
 		}
@@ -65,7 +65,7 @@ impl Menu {
 			match clickable {
 				Ok(drawable_clickable) => {
 					// Optimization here, draw everything at once (Isak help me here :D)
-					graphics::draw(ctx, &drawable_clickable, graphics::DrawParam::default());
+					graphics::draw(ctx, &drawable_clickable, graphics::DrawParam::default()).expect("Could not draw clickable");
 				}
 				Err(_) => {}
 			}

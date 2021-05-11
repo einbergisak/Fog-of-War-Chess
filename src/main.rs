@@ -35,8 +35,8 @@ pub(crate) struct State {
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
-const SCREEN_WIDTH: i32 = 800;
-const SCREEN_HEIGHT: i32 = 800;
+const SCREEN_WIDTH: f32 = 1500.0;
+const SCREEN_HEIGHT: f32 = 900.0;
 
 fn main() {
     let app_state = State {
@@ -57,7 +57,7 @@ fn main() {
         let (mut ctx, mut event_loop) = ContextBuilder::new("Fog of war", "Isak & Hampus")
             .window_mode(
                 conf::WindowMode::default()
-                    .dimensions(800.0, 800.0)
+                    .dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
                     .maximized(false)
                     .resizable(false),
             )
@@ -65,8 +65,8 @@ fn main() {
             .add_resource_path(path)
             .build()
             .expect("contextbuilder fail");
-        graphics::set_drawable_size(&mut ctx, 800.0, 800.0).expect("window drawable fail");
-        graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, 800.0, 800.0))
+        graphics::set_drawable_size(&mut ctx, SCREEN_WIDTH, SCREEN_HEIGHT).expect("window drawable fail");
+        graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT))
             .expect("screen coord fail");
 
         let mut game = Game::new(&mut ctx, true);
@@ -75,7 +75,7 @@ fn main() {
         let mut payload_buffer = String::new();
         let stdin = io::stdin();
 
-        /* command_buffer.clear();
+        command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
         stdin.read_line(&mut command_buffer).expect("Could not read line");
@@ -89,7 +89,7 @@ fn main() {
             // If playing as black, since white starts
             game.active_turn = false;
             game.playing_as_white = false;
-        } */
+        }
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {
