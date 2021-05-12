@@ -3,7 +3,7 @@ use std::{
     sync::RwLock,
 };
 
-use game::Game;
+use game::{Game, Move};
 use ggez::event::{self};
 use ggez::{
     conf,
@@ -26,7 +26,7 @@ mod networking {
 #[derive(Debug)]
 pub(crate) struct State {
     pub(crate) count: i32,
-    pub(crate) incoming_move: Option<(usize, usize)>,
+    pub(crate) incoming_move: Option<Move>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();

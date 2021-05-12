@@ -2,6 +2,7 @@ use ggez::graphics::Rect;
 
 use crate::{
     game::Game,
+    piece::PieceType::*,
     piece_movement::{
         bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
         rook_valid_moves,
@@ -17,6 +18,22 @@ pub(crate) enum Color {
     Black,
 }
 
+impl Color{
+    pub(crate) fn to_str(&self) -> &str{
+        match self{
+            Color::White => {"w"}
+            Color::Black => {"b"}
+        }
+    }
+    pub(crate) fn from_str(string: &str) -> Self{
+        match string{
+            "w" => Color::White,
+            "b" => Color::Black,
+            _ => panic!("Error converting &str to Color")
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum PieceType {
     King(bool), // Inner boolean which is true if the king has moved (used for castling)
@@ -27,7 +44,41 @@ pub(crate) enum PieceType {
     Pawn(bool), // Inner boolean which is true if the pawn has moved (pawns can move two steps on their first move)
 }
 
-#[derive(Clone, Debug)]
+impl PieceType {
+    /// Returns corresponding &str
+    pub(crate) fn to_str(&self) -> &str {
+        // The 't' means that its inner value is true, which is the case for all moved pieces.
+        match self {
+            King(true) => "Kt",
+            King(false) => "Kf",
+            Queen => "Q",
+            Rook(true) => "Rt",
+            Rook(false) => "Rf",
+            Bishop => "B",
+            Knight => "N",
+            Pawn(true) => "Pt",
+            Pawn(false) => "Pf",
+        }
+    }
+    /// Returns corresponding PieceType
+    pub(crate) fn from_str(string: &str) -> Self {
+        // The 't' means that its inner value is true, which is the case for all moved pieces.
+        match string {
+            "Kt" => King(true),
+            "Kf" => King(false),
+            "Q" => Queen,
+            "Rt" => Rook(true),
+            "Rf" => Rook(false),
+            "B" => Bishop,
+            "N" => Knight,
+            "Pt" => Pawn(true),
+            "Pf" => Pawn(false),
+            _ => panic!("Recieved invalid string when converting to PieceType"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
     pub(crate) color: Color,

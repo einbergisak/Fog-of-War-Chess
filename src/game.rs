@@ -1,15 +1,11 @@
+use std::iter::FromIterator;
+
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
 };
 
-use crate::{
-    default_board_state::generate_default_board,
-    event_handler::BOARD_SIZE,
-    game::MoveType::*,
-    piece::{self, Board, Color::*, Piece, PieceType::*},
-    render_utilities::{translate_to_coords, translate_to_index},
-};
+use crate::{default_board_state::generate_default_board, event_handler::BOARD_SIZE, game::MoveType::*, piece::{self, Board, Color::*, Piece, PieceType::{self, *}}, render_utilities::{translate_to_coords, translate_to_index}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -24,7 +20,7 @@ pub(crate) struct Game {
     pub(crate) promoting_pawn: Option<Move>,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct Move {
     pub(crate) piece: Piece,
     pub(crate) piece_dest_index: usize,
@@ -32,12 +28,115 @@ pub(crate) struct Move {
     pub(crate) move_type: MoveType,
 }
 
-#[derive(Debug)]
+impl ToString for Move {
+    fn to_string(&self) -> String {
+        let (captured_type, captured_color, captured_index) = if let Some(p) = &self.captured_piece {
+            (p.piece_type.to_str(), p.color.to_str(), p.get_index() as i32)
+        } else {
+            ("-", "", -1)
+        };
+        return format!(
+            "{}:{}:{}:{}:{}:{}:{}:{}",
+            self.piece.piece_type.to_str(),
+            self.piece.color.to_str(),
+            self.piece.index,
+            self.piece_dest_index,
+            captured_type,
+            captured_color,
+            captured_index,
+            self.move_type.to_str()
+        );
+    }
+}
+
+impl Move {
+    pub(crate) fn from_str(string: String) -> Self {
+        // Removes prefix and suffix
+        let mut chars = string.chars();
+        chars.next();
+        chars.next_back();
+
+        let s: String = String::from_iter(chars);
+        let mut s = s.split(":");
+
+        let piece_type = PieceType::from_str(s.next().unwrap());
+        let color = piece::Color::from_str(s.next().unwrap());
+        let index = s.next().unwrap().parse::<usize>().unwrap();
+        let piece = Piece{piece_type, color, index};
+
+        let piece_dest_index = s.next().unwrap().parse::<usize>().unwrap();
+
+        let captured_piece = {
+            let captured_type = s.next().unwrap();
+            if captured_type == "-"{
+                // Skips the captured color and index since there is no captured piece
+                s.next();
+                s.next();
+                None
+            }else{
+                let captured_type = PieceType::from_str(captured_type);
+                let captured_color = piece::Color::from_str( s.next().unwrap());
+                let captured_index = s.next().unwrap().parse::<usize>().unwrap();
+                let captured_piece = Piece{ piece_type: captured_type, color: captured_color, index: captured_index};
+                Some(captured_piece)
+            }
+        };
+        let move_type = MoveType::from_str(s.next().unwrap());
+        Move{
+            piece,
+            piece_dest_index,
+            captured_piece,
+            move_type,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub(crate) enum MoveType {
     Regular,
     EnPassant,
-    Promotion,
+    Promotion(PieceType), // Inner value is the piece type you're promoting to.
     Castle,
+}
+
+impl MoveType {
+    pub(crate) fn to_str(&self) -> &str {
+        match self {
+            Regular => "r",
+            EnPassant => "ep",
+            Promotion(piece_type) => match piece_type {
+                Queen => {"pq"}
+                Rook(_) => {"pr"}
+                Bishop => {"pb"}
+                Knight => {"pn"}
+                _ => panic!("Invalid promotion type")
+            },
+            Castle => "c",
+        }
+    }
+
+    pub(crate) fn from_str(string: &str) -> Self {
+        let mut chars = string.chars();
+
+        // If promoting
+        if chars.next().unwrap() == 'p' {
+            Promotion(match chars.next().unwrap(){
+                'q' => Queen,
+                'r' => Rook(true),
+                'b' => Bishop,
+                'n' => Knight,
+                _ => panic!("Invalid promotion type")
+            })
+        } else{
+            match string{
+                "r" => Regular,
+                "ep" => EnPassant,
+                "c" => Castle,
+                _ => panic!("Invalid input when attempting to convert &str to MoveType")
+            }
+        }
+
+    }
 }
 
 impl Game {
@@ -91,9 +190,10 @@ impl Game {
 
     pub(crate) fn move_piece_from_board(
         &mut self,
-        piece_source_index: usize,
-        piece_dest_index: usize,
+        move_: Move,
     ) {
+        let piece_source_index = move_.piece.index;
+        let piece_dest_index = move_.piece_dest_index;
         println!(
             "Took: {} {:?}",
             piece_source_index, self.board[piece_source_index]
@@ -101,12 +201,29 @@ impl Game {
         let piece = self.board[piece_source_index]
             .take()
             .expect("Error moving piece");
-        self.move_grabbed_piece(piece, piece_dest_index);
+
+        // Promotion is different from other moves, since you also need the promoting type, not just the source and destination index.
+        if let Promotion(piece_type) = move_.move_type{
+            let captured_piece = self.board[piece_dest_index].take();
+            self.board[piece_dest_index] = Some(Piece {
+                piece_type,
+                color: piece.color,
+                index: piece_dest_index,
+            });
+            self.move_history.push(Move {
+                piece: piece,
+                piece_dest_index: piece_dest_index,
+                captured_piece,
+                move_type: Promotion(piece_type),
+            });
+            // Your turn is over once you've made a move
+            self.active_turn = !self.active_turn;
+        } else{
+            self.move_grabbed_piece(piece, move_.piece_dest_index);
+        }
     }
 
     pub(crate) fn move_grabbed_piece(&mut self, mut piece: Piece, piece_dest_index: usize) {
-        // Your turn is over once you've made a move
-        self.active_turn = !self.active_turn;
 
         // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
@@ -153,18 +270,26 @@ impl Game {
                     && self.board[piece_dest_index].is_none()
                 {
                     // Captures the piece behind its destination tile
-                    let one_square_back = if let White = piece.color{
+                    let one_square_back = if let White = piece.color {
                         piece_dest_index - BOARD_SIZE
-                    } else{
+                    } else {
                         piece_dest_index + BOARD_SIZE
                     };
                     let captured_piece = self.board[one_square_back].take();
-                    self.move_history.push(Move {
+                    let move_ = Move {
                         piece: piece.clone(),
                         piece_dest_index,
                         captured_piece,
                         move_type: EnPassant,
-                    });
+                    };
+                    if self.active_turn{
+                        self.connection.send(
+                            "opponent",
+                            &move_.to_string(),
+                        );
+                    }
+                    self.active_turn = !self.active_turn;
+                    self.move_history.push(move_);
                     let mut piece = piece.to_owned();
                     piece.index = piece_dest_index;
                     self.board[piece_dest_index] = Some(piece);
@@ -202,12 +327,20 @@ impl Game {
                             (two_steps_queenside, 1)
                         };
                     let mut rook = self.board[rook_pos].take().unwrap();
-                    self.move_history.push(Move {
+                    let move_ = Move {
                         piece: piece.clone(),
                         piece_dest_index,
                         captured_piece: None,
                         move_type: Castle,
-                    });
+                    };
+                    if self.active_turn{
+                        self.connection.send(
+                            "opponent",
+                            &move_.to_string(),
+                        );
+                    }
+                    self.active_turn = !self.active_turn;
+                    self.move_history.push(move_);
                     let mut piece = piece.clone();
                     piece.index = two_steps_towards_rook;
                     rook.index = (piece_source_index as i32 + direction) as usize;
@@ -232,12 +365,20 @@ impl Game {
         }
         // Places the piece on the board, returning a possible captured piece
         let captured_piece = self.board[piece_dest_index].take();
-        self.move_history.push(Move {
+        let move_ = Move {
             piece: piece.clone(),
             piece_dest_index,
             captured_piece,
             move_type: Regular,
-        });
+        };
+        if self.active_turn{
+            self.connection.send(
+                "opponent",
+                &move_.to_string(),
+            );
+        }
+        self.active_turn = !self.active_turn;
+        self.move_history.push(move_);
         piece.index = piece_dest_index;
         self.board[piece_dest_index] = Some(piece);
     }

@@ -24,8 +24,8 @@ impl EventHandler for Game {
         while ggez::timer::check_update_time(ctx, 60) {
             let incoming_move = STATE.get().read().unwrap().incoming_move;
             match incoming_move {
-                Some((target, to)) => {
-                    self.move_piece_from_board(target, to);
+                Some(move_) => {
+                    self.move_piece_from_board(move_);
                     // After move has been performed we remove the values
                     STATE.get().write().unwrap().incoming_move = None;
                 }
@@ -105,7 +105,7 @@ impl EventHandler for Game {
             piece,
             piece_dest_index,
             captured_piece: _,
-            move_type: Promotion,
+            move_type: Promotion(_),
         }) = self.promoting_pawn.as_ref()
         {
             let bounds = Rect::new_i32(0, 0, BOARD_WIDTH, BOARD_WIDTH);
@@ -200,7 +200,7 @@ impl EventHandler for Game {
                     piece,
                     piece_dest_index,
                     captured_piece: _,
-                    move_type: Promotion,
+                    move_type: Promotion(_),
                 }) = self.promoting_pawn.take()
                 {
                     let piece_dest_index = piece_dest_index.to_owned();
@@ -225,12 +225,17 @@ impl EventHandler for Game {
                             color: piece.color,
                             index: piece_dest_index,
                         });
-                        self.move_history.push(Move {
+                        let move_ = Move {
                             piece: piece,
                             piece_dest_index: piece_dest_index,
                             captured_piece,
-                            move_type: Promotion,
-                        });
+                            move_type: Promotion(piece_type),
+                        };
+                        self.move_history.push(move_);
+                        self.connection.send(
+                            "opponent",
+                            &move_.to_string(),
+                        );
                         // Your turn is over once you've made a move
                         self.active_turn = !self.active_turn;
                     }
@@ -340,16 +345,12 @@ impl EventHandler for Game {
                             piece,
                             piece_dest_index,
                             captured_piece: None, // It is assigned an eventual captured piece when the promotion has been confirmed (mouse button down event)
-                            move_type: Promotion,
+                            move_type: Promotion(King(true)), // Default invalid value that is later changed when the player has selected which piece to promote into.
                         });
                         return;
                     }
 
                     self.move_grabbed_piece(piece, piece_dest_index);
-                    self.connection.send(
-                        "opponent",
-                        &format!("{}:{}", piece_source_index, piece_dest_index),
-                    );
                 } else {
                     println!("Move to index {} is NOT valid", piece_dest_index);
                     // // Reset position to source
