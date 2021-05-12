@@ -9,6 +9,7 @@ pub(crate) const LIST_START_Y: f32 = (SCREEN_HEIGHT as f32 / 2.0) - (LIST_HEIGHT
 pub(crate) const LIST_ITEM_WIDTH: f32 = LIST_WIDTH * 0.8;
 pub(crate) const LIST_ITEM_HEIGHT: f32 = 100.0;
 pub(crate) const LIST_ITEM_MARGIN: f32 = 20.0;
+pub(crate) const LIST_CHIN_HEIGHT: f32 = 50.0;
 
 pub(crate) struct List {
 	transform: Transform,
@@ -64,10 +65,8 @@ impl Menu {
 		// has actually changed, no unneccessary changes
 		if is_hovering != self.last_iteration_hover {
 			if is_hovering {
-				ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor entering clickable failed");
 				ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
 			} else {
-				ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor leaving clickable failed");
 				ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
 			}
 		}
@@ -168,6 +167,24 @@ impl Menu {
 			}
 		}
 
+		// Draw scroll chin
+		match graphics::Mesh::new_rectangle(
+			ctx, 
+			graphics::DrawMode::fill(), 
+			graphics::Rect::new(
+				LIST_START_X + LIST_WIDTH - 10.0, 
+				LIST_START_Y + LIST_HEIGHT * (self.list.scroll / Menu::max_scroll_adjusted(self.list_elements(), LIST_ITEM_MARGIN)), 
+				10.0, 
+				LIST_CHIN_HEIGHT
+			), 
+			graphics::Color::from_rgba(25, 25, 25, 100)
+		) {
+		    Ok(drawable) => {
+				graphics::draw(ctx, &drawable, graphics::DrawParam::default()).expect("Draw error");
+			}
+		    Err(_) => {}
+		}
+
 		// Render overlappers
 		let high_overlapper = graphics::Mesh::new_rectangle(
 			ctx, 
@@ -200,7 +217,7 @@ impl Menu {
 		);
 		match low_overlapper {
 		    Ok(overlapper) => {
-				graphics::draw(ctx, &overlapper, graphics::DrawParam::default()).expect("This is a test");
+				graphics::draw(ctx, &overlapper, graphics::DrawParam::default()).expect("Draw error");
 			}
 		    Err(_) => {}
 		}

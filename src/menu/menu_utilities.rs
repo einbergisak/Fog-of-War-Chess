@@ -2,7 +2,7 @@ use ggez::graphics;
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
-use super::{clickable::{Clickable, Transform}, menu_state::{LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
+use super::{clickable::{Clickable, Transform}, menu_state::{LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
 
 pub(crate) fn is_within_boundary(transform: &Transform, adjust_for_scroll: bool, x: f32, y: f32, scroll: f32) -> bool {
 
@@ -72,6 +72,11 @@ impl Menu {
 
 	pub(crate) fn max_scroll(element_count: f32, bottom_margin: f32) -> f32 {
 		let virtual_size = (LIST_ITEM_HEIGHT + bottom_margin) * element_count;
+		return reverse_scroll(virtual_size - LIST_HEIGHT);
+	}
+
+	pub(crate) fn max_scroll_adjusted(element_count: f32, bottom_margin: f32) -> f32 {
+		let virtual_size = (LIST_ITEM_HEIGHT + bottom_margin) * element_count + LIST_CHIN_HEIGHT / 2.0;
 		return reverse_scroll(virtual_size - LIST_HEIGHT);
 	}
 
