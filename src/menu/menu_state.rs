@@ -12,7 +12,8 @@ pub(crate) const LIST_ITEM_MARGIN: f32 = 20.0;
 
 pub(crate) struct List {
 	transform: Transform,
-	scroll: f32
+	scroll: f32,
+	hovered: bool
 }
 
 pub(crate) struct Menu {
@@ -44,7 +45,8 @@ impl Menu {
 					width: LIST_WIDTH as i32,
 					height: LIST_HEIGHT as i32
 				},
-				scroll: 0.0
+				scroll: 0.0,
+				hovered: false
 			}
 		}
 	}
@@ -52,7 +54,7 @@ impl Menu {
 	pub(crate) fn on_mouse_move(&mut self, ctx: &mut Context, x: f32, y: f32) {
 		let mut is_hovering = false;
 		for i in 0..self.clickables.len() {
-			let result = is_within_boundary(&self.clickables[i], x, y, self.list.scroll);
+			let result = is_within_boundary(&self.clickables[i].transform, self.clickables[i].list_item, x, y, self.list.scroll);
 			self.clickables[i].hovered = result;
 			if result {
 				is_hovering = true;
@@ -70,9 +72,19 @@ impl Menu {
 			}
 		}
 		self.last_iteration_hover = is_hovering;
+
+		// Check if mouse is hovering over list
+		self.list.hovered = false;
+		if is_within_boundary(&self.list.transform, false, x, y, self.list.scroll) {
+			self.list.hovered = true;
+		}
 	}
 
 	pub(crate) fn on_mouse_wheel(&mut self, _ctx: &mut Context, y: f32) {
+
+		if !self.list.hovered {
+			return;
+		}
 
 		let mut last_list_clickable: Option<&Clickable> = None;
 		for i in 0..self.clickables.len() {

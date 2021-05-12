@@ -4,16 +4,16 @@ use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::{clickable::{Clickable, Transform}, menu_state::{LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
 
-pub(crate) fn is_within_boundary(clickable: &Clickable, x: f32, y: f32, scroll: f32) -> bool {
+pub(crate) fn is_within_boundary(transform: &Transform, adjust_for_scroll: bool, x: f32, y: f32, scroll: f32) -> bool {
 
 	let scroll_addition = -1.0 * apply_scroll(scroll);
 
-	if clickable.list_item {
-		x > clickable.transform.x as f32 && x < (clickable.transform.x + clickable.transform.width) as f32 &&
-		y + scroll_addition > clickable.transform.y as f32 && y + scroll_addition < (clickable.transform.y + clickable.transform.height) as f32
+	if adjust_for_scroll {
+		x > transform.x as f32 && x < (transform.x + transform.width) as f32 &&
+		y + scroll_addition > transform.y as f32 && y + scroll_addition < (transform.y + transform.height) as f32
 	} else {
-		x > clickable.transform.x as f32 && x < (clickable.transform.x + clickable.transform.width) as f32 &&
-		y > clickable.transform.y as f32 && y < (clickable.transform.y + clickable.transform.height) as f32
+		x > transform.x as f32 && x < (transform.x + transform.width) as f32 &&
+		y > transform.y as f32 && y < (transform.y + transform.height) as f32
 	}
 }
 
