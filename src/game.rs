@@ -1,6 +1,6 @@
 use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
 
-use crate::{default_board_state::generate_default_board, menu::{clickable::Clickable, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -19,22 +19,28 @@ impl Game {
 
         let mut menu = Menu::new();
         menu.clickables.push(Clickable {
-            x: 50,
-            y: 50,
-            width: 300,
-            height: 100,
+            transform: Transform {
+                x: 50,
+                y: 50,
+                width: 300,
+                height: 100,
+            },
             color: Color::from_rgb(100, 100, 100),
             hovered: false,
-            text: Text::new(ggez::graphics::TextFragment::new("Hello"))
+            text: Text::new("Hello I like red"),
+            list_item: false
         });
         menu.clickables.push(Clickable {
-            x: 500,
-            y: 300,
-            width: 300,
-            height: 100,
+            transform: Transform {
+                x: 500,
+                y: 300,
+                width: 300,
+                height: 100
+            },
             color: Color::from_rgb(100, 200, 100),
             hovered: false,
-            text: Text::new(ggez::graphics::TextFragment::new("Hello"))
+            text: Text::new("This is a test"),
+            list_item: false
         });
 
         Game {

@@ -244,4 +244,8 @@ impl EventHandler for Game {
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
         self.menu.on_mouse_move(ctx, x, y);
     }
+
+    fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
+        self.menu.on_mouse_wheel(ctx, y);
+    }
 }

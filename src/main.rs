@@ -75,7 +75,7 @@ fn main() {
         let mut payload_buffer = String::new();
         let stdin = io::stdin();
 
-        command_buffer.clear();
+        /* command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
         stdin.read_line(&mut command_buffer).expect("Could not read line");
@@ -89,7 +89,7 @@ fn main() {
             // If playing as black, since white starts
             game.active_turn = false;
             game.playing_as_white = false;
-        }
+        } */
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {
