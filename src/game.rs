@@ -1,11 +1,15 @@
-use std::iter::FromIterator;
-
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
 };
 
-use crate::{default_board_state::generate_default_board, event_handler::BOARD_SIZE, game::MoveType::*, piece::{self, Board, Color::*, Piece, PieceType::{self, *}}, render_utilities::{translate_to_coords, translate_to_index}};
+use crate::{
+    default_board_state::generate_default_board,
+    event_handler::BOARD_SIZE,
+    move_struct::{Move, MoveType::*},
+    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
+    render_utilities::{translate_to_coords, translate_to_index},
+};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -18,125 +22,6 @@ pub(crate) struct Game {
     pub(crate) active_turn: bool,
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub(crate) struct Move {
-    pub(crate) piece: Piece,
-    pub(crate) piece_dest_index: usize,
-    pub(crate) captured_piece: Option<Piece>,
-    pub(crate) move_type: MoveType,
-}
-
-impl ToString for Move {
-    fn to_string(&self) -> String {
-        let (captured_type, captured_color, captured_index) = if let Some(p) = &self.captured_piece {
-            (p.piece_type.to_str(), p.color.to_str(), p.get_index() as i32)
-        } else {
-            ("-", "", -1)
-        };
-        return format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}",
-            self.piece.piece_type.to_str(),
-            self.piece.color.to_str(),
-            self.piece.index,
-            self.piece_dest_index,
-            captured_type,
-            captured_color,
-            captured_index,
-            self.move_type.to_str()
-        );
-    }
-}
-
-impl Move {
-    pub(crate) fn from_str(string: String) -> Self {
-        // Removes prefix and suffix
-        let mut chars = string.chars();
-        chars.next();
-        chars.next_back();
-
-        let s: String = String::from_iter(chars);
-        let mut s = s.split(":");
-
-        let piece_type = PieceType::from_str(s.next().unwrap());
-        let color = piece::Color::from_str(s.next().unwrap());
-        let index = s.next().unwrap().parse::<usize>().unwrap();
-        let piece = Piece{piece_type, color, index};
-
-        let piece_dest_index = s.next().unwrap().parse::<usize>().unwrap();
-
-        let captured_piece = {
-            let captured_type = s.next().unwrap();
-            if captured_type == "-"{
-                // Skips the captured color and index since there is no captured piece
-                s.next();
-                s.next();
-                None
-            }else{
-                let captured_type = PieceType::from_str(captured_type);
-                let captured_color = piece::Color::from_str( s.next().unwrap());
-                let captured_index = s.next().unwrap().parse::<usize>().unwrap();
-                let captured_piece = Piece{ piece_type: captured_type, color: captured_color, index: captured_index};
-                Some(captured_piece)
-            }
-        };
-        let move_type = MoveType::from_str(s.next().unwrap());
-        Move{
-            piece,
-            piece_dest_index,
-            captured_piece,
-            move_type,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum MoveType {
-    Regular,
-    EnPassant,
-    Promotion(PieceType), // Inner value is the piece type you're promoting to.
-    Castle,
-}
-
-impl MoveType {
-    pub(crate) fn to_str(&self) -> &str {
-        match self {
-            Regular => "r",
-            EnPassant => "ep",
-            Promotion(piece_type) => match piece_type {
-                Queen => {"pq"}
-                Rook(_) => {"pr"}
-                Bishop => {"pb"}
-                Knight => {"pn"}
-                _ => panic!("Invalid promotion type")
-            },
-            Castle => "c",
-        }
-    }
-
-    pub(crate) fn from_str(string: &str) -> Self {
-        let mut chars = string.chars();
-
-        // If promoting
-        if chars.next().unwrap() == 'p' {
-            Promotion(match chars.next().unwrap(){
-                'q' => Queen,
-                'r' => Rook(true),
-                'b' => Bishop,
-                'n' => Knight,
-                _ => panic!("Invalid promotion type")
-            })
-        } else{
-            match string{
-                "r" => Regular,
-                "ep" => EnPassant,
-                "c" => Castle,
-                _ => panic!("Invalid input when attempting to convert &str to MoveType")
-            }
-        }
-
-    }
 }
 
 impl Game {
@@ -188,10 +73,7 @@ impl Game {
         mesh
     }
 
-    pub(crate) fn move_piece_from_board(
-        &mut self,
-        move_: Move,
-    ) {
+    pub(crate) fn move_piece_from_board(&mut self, move_: Move) {
         let piece_source_index = move_.piece.index;
         let piece_dest_index = move_.piece_dest_index;
         println!(
@@ -203,7 +85,7 @@ impl Game {
             .expect("Error moving piece");
 
         // Promotion is different from other moves, since you also need the promoting type, not just the source and destination index.
-        if let Promotion(piece_type) = move_.move_type{
+        if let Promotion(piece_type) = move_.move_type {
             let captured_piece = self.board[piece_dest_index].take();
             self.board[piece_dest_index] = Some(Piece {
                 piece_type,
@@ -218,13 +100,12 @@ impl Game {
             });
             // Your turn is over once you've made a move
             self.active_turn = !self.active_turn;
-        } else{
+        } else {
             self.move_grabbed_piece(piece, move_.piece_dest_index);
         }
     }
 
     pub(crate) fn move_grabbed_piece(&mut self, mut piece: Piece, piece_dest_index: usize) {
-
         // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
             Some(Piece {
@@ -282,11 +163,8 @@ impl Game {
                         captured_piece,
                         move_type: EnPassant,
                     };
-                    if self.active_turn{
-                        self.connection.send(
-                            "opponent",
-                            &move_.to_string(),
-                        );
+                    if self.active_turn {
+                        self.connection.send("opponent", &move_.to_string());
                     }
                     self.active_turn = !self.active_turn;
                     self.move_history.push(move_);
@@ -333,11 +211,8 @@ impl Game {
                         captured_piece: None,
                         move_type: Castle,
                     };
-                    if self.active_turn{
-                        self.connection.send(
-                            "opponent",
-                            &move_.to_string(),
-                        );
+                    if self.active_turn {
+                        self.connection.send("opponent", &move_.to_string());
                     }
                     self.active_turn = !self.active_turn;
                     self.move_history.push(move_);
@@ -371,11 +246,8 @@ impl Game {
             captured_piece,
             move_type: Regular,
         };
-        if self.active_turn{
-            self.connection.send(
-                "opponent",
-                &move_.to_string(),
-            );
+        if self.active_turn {
+            self.connection.send("opponent", &move_.to_string());
         }
         self.active_turn = !self.active_turn;
         self.move_history.push(move_);
@@ -383,7 +255,7 @@ impl Game {
         self.board[piece_dest_index] = Some(piece);
     }
 
-    fn game_over(&mut self, winning_color: piece::Color) {
+    fn game_over(&mut self, winning_color: piece::PieceColor) {
         match winning_color {
             White => {
                 println!("Black lost, white won!");

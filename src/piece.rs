@@ -13,23 +13,23 @@ use crate::{
 pub(crate) type Board = Vec<Option<Piece>>;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub(crate) enum Color {
+pub(crate) enum PieceColor {
     White,
     Black,
 }
 
-impl Color{
-    pub(crate) fn to_str(&self) -> &str{
-        match self{
-            Color::White => {"w"}
-            Color::Black => {"b"}
+impl PieceColor {
+    pub(crate) fn to_str(&self) -> &str {
+        match self {
+            PieceColor::White => "w",
+            PieceColor::Black => "b",
         }
     }
-    pub(crate) fn from_str(string: &str) -> Self{
-        match string{
-            "w" => Color::White,
-            "b" => Color::Black,
-            _ => panic!("Error converting &str to Color")
+    pub(crate) fn from_str(string: &str) -> Self {
+        match string {
+            "w" => PieceColor::White,
+            "b" => PieceColor::Black,
+            _ => panic!("Error converting &str to Color"),
         }
     }
 }
@@ -81,7 +81,7 @@ impl PieceType {
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
-    pub(crate) color: Color,
+    pub(crate) color: PieceColor,
     pub(crate) index: usize,
 }
 
@@ -96,8 +96,8 @@ impl Piece {
 
 pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
     let src_image_y = match piece.color {
-        Color::White => 0.0,
-        Color::Black => 0.5,
+        PieceColor::White => 0.0,
+        PieceColor::Black => 0.5,
     };
     let src_image_x = match piece.piece_type {
         PieceType::King(_) => 0.0,

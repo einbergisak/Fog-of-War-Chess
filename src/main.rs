@@ -3,18 +3,20 @@ use std::{
     sync::RwLock,
 };
 
-use game::{Game, Move};
+use game::Game;
 use ggez::event::{self};
 use ggez::{
     conf,
     graphics::{self, Rect},
     ContextBuilder,
 };
+use move_struct::Move;
 use state::Storage;
 
 mod default_board_state;
 mod event_handler;
 mod game;
+mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;

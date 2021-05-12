@@ -9,8 +9,8 @@ use ggez::{
 };
 
 use crate::{
-    game::{Move, MoveType::*},
-    piece::{get_piece_rect, get_valid_move_indices, Color::*, Piece, PieceType::*},
+    move_struct::{Move, MoveType::*},
+    piece::{get_piece_rect, get_valid_move_indices, Piece, PieceColor::*, PieceType::*},
     render_utilities::{flip_board, flip_index, translate_to_coords, translate_to_index},
     Game, STATE,
 };
@@ -232,10 +232,7 @@ impl EventHandler for Game {
                             move_type: Promotion(piece_type),
                         };
                         self.move_history.push(move_);
-                        self.connection.send(
-                            "opponent",
-                            &move_.to_string(),
-                        );
+                        self.connection.send("opponent", &move_.to_string());
                         // Your turn is over once you've made a move
                         self.active_turn = !self.active_turn;
                     }
@@ -249,11 +246,11 @@ impl EventHandler for Game {
                 // Attempts to grab a piece from the given tile
                 if let Some(piece) = self.board[index].take() {
                     match &piece.color {
-                        crate::piece::Color::White if !self.playing_as_white => {
+                        crate::piece::PieceColor::White if !self.playing_as_white => {
                             self.board[index] = Some(piece);
                             return;
                         }
-                        crate::piece::Color::Black if self.playing_as_white => {
+                        crate::piece::PieceColor::Black if self.playing_as_white => {
                             self.board[index] = Some(piece);
                             return;
                         }
