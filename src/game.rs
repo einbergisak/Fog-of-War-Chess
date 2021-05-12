@@ -153,7 +153,12 @@ impl Game {
                     && self.board[piece_dest_index].is_none()
                 {
                     // Captures the piece behind its destination tile
-                    let captured_piece = self.board[piece_dest_index - BOARD_SIZE].take();
+                    let one_square_back = if let White = piece.color{
+                        piece_dest_index - BOARD_SIZE
+                    } else{
+                        piece_dest_index + BOARD_SIZE
+                    };
+                    let captured_piece = self.board[one_square_back].take();
                     self.move_history.push(Move {
                         piece: piece.clone(),
                         piece_dest_index,
