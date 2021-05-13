@@ -333,9 +333,9 @@ impl EventHandler for Game {
 
                     // En passant
                     println!("Moving piece: {:?}", &piece);
-                    if (piece.color == White
+                    if piece.piece_type == Pawn(true) && ((piece.color == White
                         && translate_to_coords(piece_dest_index).1 == BOARD_SIZE - 1)
-                        || (piece.color == Black && translate_to_coords(piece_dest_index).1 == 0)
+                        || (piece.color == Black && translate_to_coords(piece_dest_index).1 == 0))
                     {
                         println!("Noticed pawn promotion");
                         self.promoting_pawn = Some(Move {
