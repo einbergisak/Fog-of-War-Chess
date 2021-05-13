@@ -10,11 +10,13 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
+use move_struct::Move;
 use state::Storage;
 
 mod default_board_state;
 mod event_handler;
 mod game;
+mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;
@@ -26,7 +28,7 @@ mod networking {
 #[derive(Debug)]
 pub(crate) struct State {
     pub(crate) count: i32,
-    pub(crate) incoming_move: Option<(usize, usize)>,
+    pub(crate) incoming_move: Option<Move>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -71,13 +73,17 @@ fn main() {
         command_buffer.clear();
         payload_buffer.clear();
         println!("Create or join? (c/j): ");
-        stdin.read_line(&mut command_buffer).expect("Could not read line");
+        stdin
+            .read_line(&mut command_buffer)
+            .expect("Could not read line");
 
         if command_buffer.trim() == "c" {
             game.connection.send("create_room", "");
         } else {
             println!("Room code?: ");
-            stdin.read_line(&mut payload_buffer).expect("Could not readline");
+            stdin
+                .read_line(&mut payload_buffer)
+                .expect("Could not readline");
             game.connection.send("join_room", &payload_buffer);
             // If playing as black, since white starts
             game.active_turn = false;
