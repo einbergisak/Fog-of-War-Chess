@@ -1,5 +1,4 @@
 use std::{
-    io::{self},
     sync::RwLock,
 };
 
@@ -10,7 +9,7 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
-use networking::connection::Room;
+use networking::connection::{NetworkEventValidation, Room};
 use state::Storage;
 
 mod default_board_state;
@@ -34,7 +33,8 @@ pub(crate) struct State {
     pub(crate) count: i32,
     pub(crate) incoming_move: Option<(usize, usize)>,
     pub(crate) lobbies: Vec<Room>,
-    pub(crate) lobby_sync: i32
+    pub(crate) lobby_sync: i32,
+    pub(crate) event_validation: NetworkEventValidation
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -46,7 +46,13 @@ fn main() {
         count: 0,
         incoming_move: None,
         lobbies: Vec::new(),
-        lobby_sync: 0
+        lobby_sync: 0,
+        event_validation: NetworkEventValidation {
+            create_room: false,
+            join_room: false,
+            opponent_connect: false,
+            opponent_disconnect: false
+        }
     };
     STATE.set(RwLock::new(app_state));
 
@@ -75,26 +81,6 @@ fn main() {
             .expect("screen coord fail");
 
         let mut game = Game::new(&mut ctx, true);
-
-        let mut command_buffer = String::new();
-        let mut payload_buffer = String::new();
-        let stdin = io::stdin();
-
-        /* command_buffer.clear();
-        payload_buffer.clear();
-        println!("Create or join? (c/j): ");
-        stdin.read_line(&mut command_buffer).expect("Could not read line");
-
-        if command_buffer.trim() == "c" {
-            game.connection.send("create_room", "");
-        } else {
-            println!("Room code?: ");
-            stdin.read_line(&mut payload_buffer).expect("Could not readline");
-            game.connection.send("join_room", &payload_buffer);
-            // If playing as black, since white starts
-            game.active_turn = false;
-            game.playing_as_white = false;
-        } */
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {

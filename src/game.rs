@@ -1,6 +1,6 @@
 use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
 
-use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, ClickableId, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -20,7 +20,7 @@ impl Game {
 
         let mut menu = Menu::new();
         menu.clickables.push(Clickable {
-            id: ClickableId::CreateGameButton,
+            id: String::from("create_room_button"),
             transform: Transform {
                 x: 50,
                 y: 50,
@@ -124,11 +124,14 @@ impl Game {
 
         for i in 0..self.menu.clickables.len() {
             if self.menu.clickables[i].hovered {
-                match &self.menu.clickables[i].id {
-                    ClickableId::CreateGameButton => {
+                match &self.menu.clickables[i].id[..] {
+                    "create_room_button" => {
                         self.connection.send("create_room", "");
                     }
-                    _ => {}
+                    id => {
+                        println!("Join room: {}", id);
+                        self.connection.send("join_room", id)
+                    }
                 }
             }
         }

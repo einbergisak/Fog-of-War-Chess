@@ -23,10 +23,20 @@ impl EventHandler for Game {
             }
         }
 
+        // Check if lobbies have changed
         if self.lobby_sync != STATE.get().read().unwrap().lobby_sync {
             self.menu.clear_list_items_from_list();
             self.menu.generate_list_item_from_list(&STATE.get().read().unwrap().lobbies);
             self.lobby_sync = STATE.get().read().unwrap().lobby_sync;
+        }
+
+        // Check if network state has updated
+        let event_validation = &STATE.get().read().unwrap().event_validation;
+        if event_validation.create_room {
+            self.menu.visible = false;
+        } else if event_validation.join_room {
+            self.menu.visible = false;
+            self.playing_as_white = false;
         }
         Ok(())
     }

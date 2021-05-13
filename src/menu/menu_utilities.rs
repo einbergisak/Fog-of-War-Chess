@@ -2,7 +2,7 @@ use ggez::graphics;
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, networking::connection::Room};
 
-use super::{clickable::{Clickable, ClickableId, Transform}, menu_state::{LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
+use super::{clickable::{Clickable, Transform}, menu_state::{LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
 
 pub(crate) fn is_within_boundary(transform: &Transform, adjust_for_scroll: bool, x: f32, y: f32, scroll: f32) -> bool {
 
@@ -62,7 +62,7 @@ impl Menu {
 
 		for i in 0..elements.len() {
 			self.clickables.push(Clickable {
-				id: ClickableId::ListItem,
+				id: elements[i].id.clone(),
 				transform: Transform {
 					x: x_pos as i32,
 					y: (y_pos + i as f32 * (LIST_ITEM_HEIGHT + LIST_ITEM_MARGIN)) as i32,

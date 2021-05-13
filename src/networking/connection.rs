@@ -6,6 +6,14 @@ pub(crate) struct Networking {
 }
 
 #[derive(Debug)]
+pub(crate) struct NetworkEventValidation {
+    pub(crate) create_room: bool,
+    pub(crate) join_room: bool,
+    pub(crate) opponent_connect: bool,
+    pub(crate) opponent_disconnect: bool
+}
+
+#[derive(Debug)]
 pub(crate) struct Room {
     pub(crate) id: String,
     pub(crate) members: i32
