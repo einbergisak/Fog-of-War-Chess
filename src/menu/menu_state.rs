@@ -82,7 +82,11 @@ impl Menu {
 			}
 		}
 
-		self.list.scroll -= y;
+		println!("SCROLL {}", self.list.scroll);
+
+		if last_list_clickable.is_some() {
+			self.list.scroll -= y;
+		}
 
 		if y < 0.0 {
 			match last_list_clickable {
@@ -158,21 +162,23 @@ impl Menu {
 		}
 
 		// Draw scroll chin
-		match graphics::Mesh::new_rectangle(
-			ctx, 
-			graphics::DrawMode::fill(), 
-			graphics::Rect::new(
-				LIST_START_X + LIST_WIDTH - 10.0, 
-				LIST_START_Y + LIST_HEIGHT * (self.list.scroll / Menu::max_scroll_adjusted(self.list_elements(), LIST_ITEM_MARGIN)), 
-				10.0, 
-				LIST_CHIN_HEIGHT
-			), 
-			graphics::Color::from_rgba(25, 25, 25, 100)
-		) {
-		    Ok(drawable) => {
-				graphics::draw(ctx, &drawable, graphics::DrawParam::default()).expect("Draw error");
+		if self.list_elements() > 0.0 {
+			match graphics::Mesh::new_rectangle(
+				ctx, 
+				graphics::DrawMode::fill(), 
+				graphics::Rect::new(
+					LIST_START_X + LIST_WIDTH - 10.0, 
+					LIST_START_Y + LIST_HEIGHT * (self.list.scroll / Menu::max_scroll_adjusted(self.list_elements(), LIST_ITEM_MARGIN)), 
+					10.0, 
+					LIST_CHIN_HEIGHT
+				), 
+				graphics::Color::from_rgba(25, 25, 25, 100)
+			) {
+				Ok(drawable) => {
+					graphics::draw(ctx, &drawable, graphics::DrawParam::default()).expect("Draw error");
+				}
+				Err(_) => {}
 			}
-		    Err(_) => {}
 		}
 
 		// Render overlappers
