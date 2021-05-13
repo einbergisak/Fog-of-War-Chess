@@ -1,5 +1,5 @@
-use ggez::{Context, graphics::{self}};
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use ggez::{Context, graphics};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, LIGHT_COLOR}};
 use super::{clickable::{Clickable, Transform}, menu_utilities::{apply_scroll, is_within_boundary}};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
@@ -113,7 +113,7 @@ impl Menu {
 				self.list.transform.width as f32, 
 				self.list.transform.height as f32
 			), 
-			graphics::Color::from_rgb(100, 100, 0)
+			graphics::Color::from(LIGHT_COLOR)
 		).expect("Could not render list");
 
 		graphics::draw(ctx, &list_drawable, graphics::DrawParam::default()).expect("Could not draw list");
@@ -185,7 +185,7 @@ impl Menu {
 				LIST_WIDTH, 
 				(SCREEN_HEIGHT - LIST_HEIGHT) / 2.0
 			), 
-			graphics::Color::from_rgb(0, 0, 0)
+			graphics::Color::from(BACKGROUND_COLOR)
 		);
 		match high_overlapper {
 		    Ok(overlapper) => {
@@ -203,7 +203,7 @@ impl Menu {
 				LIST_WIDTH, 
 				(SCREEN_HEIGHT - LIST_HEIGHT) / 2.0
 			), 
-			graphics::Color::from_rgb(0, 0, 0)
+			graphics::Color::from(BACKGROUND_COLOR)
 		);
 		match low_overlapper {
 		    Ok(overlapper) => {

@@ -1,6 +1,6 @@
 use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::{Point2}};
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 pub(crate) const BOARD_SIZE: usize = 8;
 pub(crate) const TILE_SIZE: i32 = 100;
@@ -43,6 +43,21 @@ impl EventHandler for Game {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
+
+        // Draw background
+		let background = graphics::Mesh::new_rectangle(
+			ctx, 
+			graphics::DrawMode::fill(), 
+			graphics::Rect::new(
+				0.0, 
+				0.0, 
+				SCREEN_WIDTH, 
+				SCREEN_HEIGHT
+			), 
+            graphics::Color::from(BACKGROUND_COLOR)
+		).expect("Could not render list");
+
+		graphics::draw(ctx, &background, graphics::DrawParam::default()).expect("Could not render background");
 
         // If menu is active we don't bother showing the rest of the game
         if self.menu.visible {

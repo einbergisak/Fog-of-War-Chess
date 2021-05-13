@@ -1,7 +1,12 @@
 use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
 
-use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
+
+pub(crate) const BACKGROUND_COLOR: (u8, u8, u8) = (57, 43, 20);
+pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
+pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
+
 
 // Main struct
 pub(crate) struct Game {
@@ -22,12 +27,12 @@ impl Game {
         menu.clickables.push(Clickable {
             id: String::from("create_room_button"),
             transform: Transform {
-                x: 50,
-                y: 50,
-                width: 300,
-                height: 100,
+                x: SCREEN_WIDTH as i32 / 4 - 500 / 2,
+                y: SCREEN_HEIGHT as i32 / 2 - 200 / 2,
+                width: 500,
+                height: 200,
             },
-            color: Color::from_rgb(100, 100, 100),
+            color: Color::from(LIGHT_COLOR),
             hovered: false,
             text: Text::new("Hello I like red"),
             list_item: false
@@ -46,8 +51,6 @@ impl Game {
     }
 
     fn get_board_mesh(ctx: &mut Context) -> Mesh {
-        let dark_color: (u8, u8, u8) = (181, 136, 99);
-        let light_color: (u8, u8, u8) = (240, 217, 181);
 
         let mut mesh_builder = MeshBuilder::new();
 
@@ -65,9 +68,9 @@ impl Game {
                 let color: (u8, u8, u8);
                 if (column + row) % 2 == 0 {
                     // White
-                    color = light_color;
+                    color = LIGHT_COLOR;
                 } else {
-                    color = dark_color;
+                    color = DARK_COLOR;
                 }
 
                 // Create Rectangle in mesh at position

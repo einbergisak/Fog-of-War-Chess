@@ -82,6 +82,8 @@ fn main() {
 
         let mut game = Game::new(&mut ctx, true);
 
+        game.connection.send("list_rooms", "");
+
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {
             Ok(_) => {}
