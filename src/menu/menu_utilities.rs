@@ -1,8 +1,8 @@
 use ggez::graphics;
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, networking::connection::Room};
 
-use super::{clickable::{Clickable, Transform}, menu_state::{LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
+use super::{clickable::{Clickable, ClickableId, Transform}, menu_state::{LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH, LIST_WIDTH, Menu}};
 
 pub(crate) fn is_within_boundary(transform: &Transform, adjust_for_scroll: bool, x: f32, y: f32, scroll: f32) -> bool {
 
@@ -37,15 +37,23 @@ impl Menu {
 		return (real_x, real_y);
 	}
 
-	pub(crate) fn list_from_real_to_rel(x: f32, y: f32) -> (f32, f32) {
+	/* pub(crate) fn list_from_real_to_rel(x: f32, y: f32) -> (f32, f32) {
 		let rel_x = x + LIST_WIDTH / 2.0 - 3.0/4.0 * SCREEN_WIDTH;
 		let rel_y = y + LIST_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0;
 		return (rel_x, rel_y)
+	} */
+
+	pub(crate) fn clear_list_items_from_list(&mut self) {
+		let mut offset = 0;
+		for i in 0..self.clickables.len() {
+			if self.clickables[i - offset].list_item {
+				self.clickables.remove(i - offset);
+				offset += 1;
+			}
+		}		
 	}
 
-	pub(crate) fn generate_list_item_from_list(elements: Vec<&str>) -> Vec<Clickable> {
-
-		let mut clickables: Vec<Clickable> = Vec::new();
+	pub(crate) fn generate_list_item_from_list(&mut self, elements: &Vec<Room>) {
 
 		let (x_pos, y_pos) = Menu::list_from_rel_to_real(
 			LIST_WIDTH / 2.0 - LIST_ITEM_WIDTH / 2.0, 
@@ -53,7 +61,8 @@ impl Menu {
 		);
 
 		for i in 0..elements.len() {
-			clickables.push(Clickable {
+			self.clickables.push(Clickable {
+				id: ClickableId::ListItem,
 				transform: Transform {
 					x: x_pos as i32,
 					y: (y_pos + i as f32 * (LIST_ITEM_HEIGHT + LIST_ITEM_MARGIN)) as i32,
@@ -63,11 +72,9 @@ impl Menu {
 				hovered: false,
 				list_item: true,
 				color: graphics::Color::from_rgb(100, 0, 200),
-				text: graphics::Text::new(elements[i].clone())
+				text: graphics::Text::new(elements[i].id.clone())
 			})
 		}
-
-		return clickables;
 	}
 
 	pub(crate) fn max_scroll(element_count: f32, bottom_margin: f32) -> f32 {

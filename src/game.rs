@@ -1,6 +1,6 @@
 use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
 
-use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{default_board_state::generate_default_board, menu::{clickable::{Clickable, ClickableId, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 
 // Main struct
@@ -12,6 +12,7 @@ pub(crate) struct Game {
     pub(crate) active_turn: bool,
     pub(crate) connection: Networking,
     pub(crate) menu: Menu,
+    pub(crate) lobby_sync: i32
 }
 
 impl Game {
@@ -19,6 +20,7 @@ impl Game {
 
         let mut menu = Menu::new();
         menu.clickables.push(Clickable {
+            id: ClickableId::CreateGameButton,
             transform: Transform {
                 x: 50,
                 y: 50,
@@ -30,18 +32,6 @@ impl Game {
             text: Text::new("Hello I like red"),
             list_item: false
         });
-        menu.clickables.push(Clickable {
-            transform: Transform {
-                x: 500,
-                y: 300,
-                width: 300,
-                height: 100
-            },
-            color: Color::from_rgb(100, 200, 100),
-            hovered: false,
-            text: Text::new("This is a test"),
-            list_item: false
-        });
 
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
@@ -50,7 +40,8 @@ impl Game {
             board_mesh: Game::get_board_mesh(ctx),
             active_turn: playing_as_white,
             connection: Networking::new(),
-            menu
+            menu,
+            lobby_sync: 0
         }
     }
 
@@ -125,6 +116,20 @@ impl Game {
             Black => {
                 println!("White lost, black won!");
                 todo!()
+            }
+        }
+    }
+
+    pub(crate) fn button_parsing(&mut self) {
+
+        for i in 0..self.menu.clickables.len() {
+            if self.menu.clickables[i].hovered {
+                match &self.menu.clickables[i].id {
+                    ClickableId::CreateGameButton => {
+                        self.connection.send("create_room", "");
+                    }
+                    _ => {}
+                }
             }
         }
     }

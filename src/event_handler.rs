@@ -1,4 +1,4 @@
-use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::{Point, Point2}};
+use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::{Point2}};
 
 use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
@@ -21,6 +21,12 @@ impl EventHandler for Game {
                 }
                 None => {}
             }
+        }
+
+        if self.lobby_sync != STATE.get().read().unwrap().lobby_sync {
+            self.menu.clear_list_items_from_list();
+            self.menu.generate_list_item_from_list(&STATE.get().read().unwrap().lobbies);
+            self.lobby_sync = STATE.get().read().unwrap().lobby_sync;
         }
         Ok(())
     }
@@ -107,6 +113,7 @@ impl EventHandler for Game {
 
                  // UI logic
                 if self.menu.visible {
+                    self.button_parsing();
                     return
                 }
 

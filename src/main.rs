@@ -10,6 +10,7 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
+use networking::connection::Room;
 use state::Storage;
 
 mod default_board_state;
@@ -32,6 +33,8 @@ mod menu {
 pub(crate) struct State {
     pub(crate) count: i32,
     pub(crate) incoming_move: Option<(usize, usize)>,
+    pub(crate) lobbies: Vec<Room>,
+    pub(crate) lobby_sync: i32
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -42,6 +45,8 @@ fn main() {
     let app_state = State {
         count: 0,
         incoming_move: None,
+        lobbies: Vec::new(),
+        lobby_sync: 0
     };
     STATE.set(RwLock::new(app_state));
 

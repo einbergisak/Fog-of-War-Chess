@@ -1,5 +1,5 @@
 use ggez::{Context, graphics::{self}};
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, menu::{clickable, menu_utilities::reverse_scroll}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use super::{clickable::{Clickable, Transform}, menu_utilities::{apply_scroll, is_within_boundary}};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
@@ -16,7 +16,6 @@ pub(crate) struct List {
 	scroll: f32,
 	hovered: bool
 }
-
 pub(crate) struct Menu {
 	pub(crate) visible: bool,
 	pub(crate) clickables: Vec<Clickable>,
@@ -28,16 +27,7 @@ impl Menu {
 	pub(crate) fn new() -> Menu {
 		Menu {
 			visible: true,
-			clickables: Menu::generate_list_item_from_list(vec![
-				"First",
-				"ping",
-				"pong",
-				"hello",
-				"test",
-				"TEST",
-				"TEST2",
-				"test3"
-			]),
+			clickables: Vec::new(),
 			last_iteration_hover: false,
 			list: List {
 				transform: Transform {

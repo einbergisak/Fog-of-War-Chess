@@ -1,6 +1,6 @@
 use rust_socketio::{Payload, Socket};
 
-use crate::STATE;
+use crate::{STATE, networking::connection::Room};
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
     let app_state = STATE.get();
@@ -79,6 +79,49 @@ pub(crate) fn on_join_room(payload: Payload, _: Socket) {
 pub(crate) fn on_create_room(payload: Payload, _: Socket) {
     match payload {
         Payload::String(str) => println!("create room: {}", str),
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_list_room(payload: Payload, _: Socket) {
+    println!("Incoming package");
+    match payload {
+        Payload::String(str) => {
+            let incoming: Vec<char> = str.chars().collect();
+            let mut rooms: Vec<Room> = Vec::new();
+
+            let mut currentId = String::from("");
+            let mut currentMembers = String::from("");
+            let mut idActive = true;
+
+            for i in 0..str.len() {
+                match &incoming[i].to_string()[..] {
+                    ":" => {
+                        idActive = false;
+                    }
+                    ";" => {
+                        rooms.push(Room {
+                            id: currentId.to_string(),
+                            members: currentMembers.parse::<i32>().unwrap()
+                        });
+                        currentId = String::from("");
+                        currentMembers = String::from("");
+                        idActive = true;
+                    }
+                    letter => {
+                        let temp_array: Vec<char> = letter.chars().collect();
+                        if idActive {
+                            currentId.push(temp_array[0]);
+                        } else {
+                            currentMembers.push(temp_array[0]);
+                        }
+                    }
+                }
+            }
+
+            STATE.get().write().unwrap().lobbies = rooms;
+            STATE.get().write().unwrap().lobby_sync += 1;
+        },
         Payload::Binary(_) => {}
     }
 }

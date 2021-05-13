@@ -5,6 +5,12 @@ pub(crate) struct Networking {
     socket: Socket,
 }
 
+#[derive(Debug)]
+pub(crate) struct Room {
+    pub(crate) id: String,
+    pub(crate) members: i32
+}
+
 impl Networking {
     pub(crate) fn new() -> Networking {
         let socket = SocketBuilder::new("http://localhost:8080")
@@ -27,6 +33,9 @@ impl Networking {
             })
             .on("opponent_disconnect", |payload, socket| {
                 events::on_opponent_disconnect(payload, socket)
+            })
+            .on("list_rooms", |payload, socket| {
+                events::on_list_room(payload, socket)
             })
             .on("error", |err, _| eprintln!("Error: {:#?}", err))
             .connect()
