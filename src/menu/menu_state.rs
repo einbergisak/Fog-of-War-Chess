@@ -2,11 +2,8 @@ use super::{
     clickable::{Clickable, Transform},
     menu_utilities::{apply_scroll, is_within_boundary},
 };
-use crate::{
-    game::{BACKGROUND_COLOR, LIGHT_COLOR},
-    SCREEN_HEIGHT, SCREEN_WIDTH,
-};
-use ggez::{graphics, Context};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR}};
+use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
 pub(crate) const LIST_HEIGHT: f32 = SCREEN_HEIGHT as f32 * 0.8;
@@ -94,8 +91,6 @@ impl Menu {
             }
         }
 
-        println!("SCROLL {}", self.list.scroll);
-
         if last_list_clickable.is_some() {
             self.list.scroll -= y;
         }
@@ -117,7 +112,7 @@ impl Menu {
         }
     }
 
-    pub(crate) fn render(&self, ctx: &mut Context) {
+    pub(crate) fn render(&mut self, ctx: &mut Context) {
         // Draw list
         let list_drawable = graphics::Mesh::new_rectangle(
             ctx,
@@ -135,36 +130,35 @@ impl Menu {
         graphics::draw(ctx, &list_drawable, graphics::DrawParam::default())
             .expect("Could not draw list");
 
-        let clickables = &self.clickables;
-
         // Go through all clickables and draw them
-        for i in 0..clickables.len() {
-            let mut color = clickables[i].color;
-            if clickables[i].hovered {
-                color = graphics::Color::from_rgb_u32(clickables[i].color.to_rgb_u32() - 5000);
+        for clickable in &mut self.clickables {
+            let mut color =clickable.color;
+            if clickable.hovered {
+                color = graphics::Color::from_rgb_u32(clickable.color.to_rgb_u32() - 5000);
             }
 
             // If the clickable is not a
             // list item then we don't
             // scroll it
             let mut scroll = 0.0;
-            if clickables[i].list_item {
+            if clickable.list_item {
                 scroll = self.list.scroll
             }
 
-            let clickable = graphics::Mesh::new_rectangle(
+            let rect =  graphics::Rect::new(
+                clickable.transform.x as f32,
+                clickable.transform.y as f32 + apply_scroll(scroll),
+                clickable.transform.width as f32,
+                clickable.transform.height as f32,
+            );
+            let drawable_clickable = graphics::Mesh::new_rectangle(
                 ctx,
                 graphics::DrawMode::fill(),
-                graphics::Rect::new(
-                    clickables[i].transform.x as f32,
-                    clickables[i].transform.y as f32 + apply_scroll(scroll),
-                    clickables[i].transform.width as f32,
-                    clickables[i].transform.height as f32,
-                ),
+                rect,
                 color,
             );
 
-            match clickable {
+            match drawable_clickable {
                 Ok(drawable_clickable) => {
                     // Optimization here, draw everything at once (Isak help me here :D)
                     graphics::draw(ctx, &drawable_clickable, graphics::DrawParam::default())
@@ -172,6 +166,24 @@ impl Menu {
                 }
                 Err(_) => {}
             }
+
+            let mut text = Text::new(clickable.text.clone());
+            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
+            let scale = f32::min(clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32, clickable.transform.height as f32 * 0.8);
+            text.set_font(font, graphics::Scale::uniform(scale));
+
+            text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
+
+            graphics::draw(
+                ctx,
+                &text,
+                graphics::DrawParam::default()
+                    .dest(Point2::<f32>::new(
+                        clickable.transform.x as f32,
+                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0
+                    ))
+                    .color(graphics::Color::from(DARK_COLOR))
+            ).expect("Error drawing clickable text");
         }
 
         // Draw scroll chin

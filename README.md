@@ -43,6 +43,7 @@ Upplägg:
   * Schackklocka
   * Pre-moves (Isak)
   * Joina lobby som åskådare (Hampus)
+  * Ange namn när man skapar/joinar en lobby.
   * See captured pieces
   * Resign-knapp
   * Navigera genom historik av drag

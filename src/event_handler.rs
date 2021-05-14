@@ -1,16 +1,6 @@
-use ggez::{
-    event::{EventHandler, MouseButton},
-    graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
-    nalgebra::Point2,
-    Context, GameResult,
-};
+use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Font, Image, Text, spritebatch::SpriteBatch}, nalgebra::Point2};
 
-use crate::{
-    game::BACKGROUND_COLOR,
-    piece::{get_piece_rect, get_valid_move_indices, Piece},
-    render_utilities::{flip_board, flip_index, translate_to_index},
-    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
-};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 use ggez::{
     graphics::{DrawMode, Mesh, MeshBuilder, Rect},
@@ -100,6 +90,26 @@ impl EventHandler for Game {
             &self.board_mesh,
             (Point2::<f32>::new(BOARD_ORIGO_X, BOARD_ORIGO_Y),),
         )?;
+
+        if let Some(id) = &STATE.get().read().unwrap().room_id {
+            let mut text = Text::new(format!("Room code: {}", id.clone().replace("\"", "")));
+            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
+            let scale = 40.0;
+            text.set_font(font, graphics::Scale::uniform(scale));
+
+            text.set_bounds(Point2::new(SCREEN_WIDTH, 40.0), graphics::Align::Center);
+
+            graphics::draw(
+                ctx,
+                &text,
+                graphics::DrawParam::default()
+                    .dest(Point2::<f32>::new(
+                        0.0,
+                        0.0
+                    ))
+                    .color(graphics::Color::from(LIGHT_COLOR))
+            ).expect("Error drawing clickable text");
+        }
 
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image.clone());

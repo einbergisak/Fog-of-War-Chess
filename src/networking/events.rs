@@ -70,6 +70,7 @@ pub(crate) fn on_create_room(payload: Payload, _: Socket) {
             println!("create room: {}", str);
             if str != "false" {
                 STATE.get().write().unwrap().event_validation.create_room = true;
+                STATE.get().write().unwrap().room_id = Some(str);
             }
         }
         Payload::Binary(_) => {}

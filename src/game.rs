@@ -52,7 +52,7 @@ impl Game {
             },
             color: Color::from(LIGHT_COLOR),
             hovered: false,
-            text: Text::new("Hello I like red"),
+            text: String::from("Create room"),
             list_item: false,
         });
 

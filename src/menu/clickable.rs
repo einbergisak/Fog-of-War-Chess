@@ -10,7 +10,7 @@ pub(crate) struct Clickable {
     pub(crate) id: String,
     pub(crate) transform: Transform,
     pub(crate) color: graphics::Color,
-    pub(crate) text: graphics::Text,
+    pub(crate) text: String,
     pub(crate) hovered: bool,
     pub(crate) list_item: bool,
 }

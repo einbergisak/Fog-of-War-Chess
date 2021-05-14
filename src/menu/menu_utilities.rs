@@ -84,7 +84,7 @@ impl Menu {
                 hovered: false,
                 list_item: true,
                 color: graphics::Color::from_rgb(200, 200, 200),
-                text: graphics::Text::new(elements[i].id.clone()),
+                text: elements[i].id.clone(),
             })
         }
     }
