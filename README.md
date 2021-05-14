@@ -31,20 +31,22 @@ Upplägg:
   * ~Player implementation~
     * ~Turn-system: Spelare kan endast flytta sina egna pjäser på sin egen turn.~
     * ~Win/lose system~
-  * Main menu
+  * ~Main menu implementation~
   * ~Special rules (rockad/castling, promotion, en passant)~
-  * Fog of war-system
+  
+* Tredje veckan/Om tid finns:
+  * Fog of war-system (Isak)
     * (Pjäser kan “se” de rutor som de kan attackera och/eller gå till)
-  * Movement indication
-  * Select by clicking
-
-
-* Om tid finns:
-  * Schackklocka
+  * Movement indication (Isak)
+  * Select by clicking (Isak)
+  * Ljudsystem (Hampus)
+  * Vinst/förlust (att nått händer) (Hampus)
+  * Dekorera main menu (Hampus)
+  * Schackklocka (Hampus)
   * Pre-moves (Isak)
   * Joina lobby som åskådare (Hampus)
-  * Ange namn när man skapar/joinar en lobby.
-  * See captured pieces
+  * Ange namn när man skapar/joinar en lobby. (Hampus)
+  * See captured pieces (Hampus)
   * Resign-knapp
-  * Navigera genom historik av drag
+  * Navigera genom historik av drag (Isak)
   * Ändra färg på brädet
