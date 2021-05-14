@@ -1,5 +1,4 @@
 use std::{
-    io::{self},
     sync::RwLock,
 };
 
@@ -10,11 +9,14 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
+use networking::connection::{NetworkEventValidation, Room};
+use move_struct::Move;
 use state::Storage;
 
 mod default_board_state;
 mod event_handler;
 mod game;
+mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;
@@ -22,19 +24,37 @@ mod networking {
     pub mod connection;
     pub mod events;
 }
+mod menu {
+    pub mod menu_state;
+    pub mod clickable;
+    pub mod menu_utilities;
+}
 
 #[derive(Debug)]
 pub(crate) struct State {
     pub(crate) count: i32,
-    pub(crate) incoming_move: Option<(usize, usize)>,
+    pub(crate) lobbies: Vec<Room>,
+    pub(crate) lobby_sync: i32,
+    pub(crate) event_validation: NetworkEventValidation
+    pub(crate) incoming_move: Option<Move>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
+const SCREEN_WIDTH: f32 = 1500.0;
+const SCREEN_HEIGHT: f32 = 900.0;
 
 fn main() {
     let app_state = State {
         count: 0,
         incoming_move: None,
+        lobbies: Vec::new(),
+        lobby_sync: 0,
+        event_validation: NetworkEventValidation {
+            create_room: false,
+            join_room: false,
+            opponent_connect: false,
+            opponent_disconnect: false
+        }
     };
     STATE.set(RwLock::new(app_state));
 
@@ -50,7 +70,7 @@ fn main() {
         let (mut ctx, mut event_loop) = ContextBuilder::new("Fog of war", "Isak & Hampus")
             .window_mode(
                 conf::WindowMode::default()
-                    .dimensions(800.0, 800.0)
+                    .dimensions(SCREEN_WIDTH, SCREEN_HEIGHT)
                     .maximized(false)
                     .resizable(false),
             )
@@ -58,31 +78,14 @@ fn main() {
             .add_resource_path(path)
             .build()
             .expect("contextbuilder fail");
-        graphics::set_drawable_size(&mut ctx, 800.0, 800.0).expect("window drawable fail");
-        graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, 800.0, 800.0))
+        graphics::set_drawable_size(&mut ctx, SCREEN_WIDTH, SCREEN_HEIGHT).expect("window drawable fail");
+        graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT))
             .expect("screen coord fail");
 
         let mut game = Game::new(&mut ctx, true);
 
-        let mut command_buffer = String::new();
-        let mut payload_buffer = String::new();
-        let stdin = io::stdin();
+        game.connection.send("list_rooms", "");
 
-        command_buffer.clear();
-        payload_buffer.clear();
-        println!("Create or join? (c/j): ");
-        stdin.read_line(&mut command_buffer).expect("Could not read line");
-
-        if command_buffer.trim() == "c" {
-            game.connection.send("create_room", "");
-        } else {
-            println!("Room code?: ");
-            stdin.read_line(&mut payload_buffer).expect("Could not readline");
-            game.connection.send("join_room", &payload_buffer);
-            // If playing as black, since white starts
-            game.active_turn = false;
-            game.playing_as_white = false;
-        }
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {

@@ -6,8 +6,8 @@ pub(crate) fn flip_board(board: &Board) -> Board {
     return flipped_board;
 }
 
-pub(crate) fn flip_index(index: &i32, board_size: i32) -> i32 {
-    let list_size = board_size * board_size;
+pub(crate) fn flip_index(index: usize) -> usize {
+    let list_size = BOARD_SIZE * BOARD_SIZE;
     return list_size - index - 1;
 }
 

@@ -1,18 +1,15 @@
 use crate::{
     event_handler::BOARD_SIZE,
-    piece::{Board, Color::*, Piece},
-    render_utilities::{translate_to_coords, translate_to_index},
+    move_struct::Move,
+    piece::{Board, Piece, PieceColor::*, PieceType::*},
+    render_utilities::translate_to_index,
 };
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn rook_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
 
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Check row x+
     if x < BOARD_SIZE - 1 {
@@ -58,13 +55,9 @@ pub(crate) fn rook_valid_moves(
 }
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn bishop_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn bishop_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Towards x+ y+
     for (dest_x, dest_y) in (x..BOARD_SIZE).zip(y..BOARD_SIZE) {
@@ -105,13 +98,9 @@ pub(crate) fn bishop_valid_moves(
     indices
 }
 
-pub(crate) fn knight_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     // Move 2 steps towards y- then 1 step horizontally
     if y > 1 {
@@ -164,13 +153,9 @@ pub(crate) fn knight_valid_moves(
     indices
 }
 
-pub(crate) fn king_valid_moves(
-    board: &Board,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn king_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
     for xd in -1..=1 {
         for yd in -1..=1 {
@@ -192,87 +177,132 @@ pub(crate) fn king_valid_moves(
         }
     }
 
+    // Castling: The King can castle with a friendly rook so long as neither of the pieces have moved.
+    if let Piece {
+        piece_type: King(false), // King(false) is a king that hasn't moved.
+        color: king_color,
+        index: _,
+    } = piece
+    {
+        let piece_source_index = piece.get_index();
+        'rook_loop: for rook_index in [piece_source_index - 3, piece_source_index + 4].iter() {
+            if let Some(Piece {
+                piece_type: Rook(false), // Rook(false) is a rook that hasn't moved
+                color: rook_color,
+                index: _,
+            }) = board[*rook_index].as_ref()
+            {
+                if rook_color == king_color {
+                    if *rook_index < piece_source_index {
+                        // Check for pieces between the king and the kingside rook
+                        for index in (*rook_index + 1)..piece_source_index {
+                            if board[index].is_some() {
+                                // If there is a piece between the king and the kingside rook we continue to check the kingside rook
+                                continue 'rook_loop;
+                            }
+                        }
+                        indices.push(piece_source_index - 2); // Lets the player castle by moving two squares
+                        indices.push(*rook_index); // Lets the player castle by moving to the rook
+                    } else {
+                        // Check for pieces between the king and the queenside rook
+                        for index in (piece_source_index + 1)..*rook_index {
+                            if board[index].is_some() {
+                                // If there is a piece between the king and the queenside rook
+                                break 'rook_loop;
+                            }
+                        }
+                        indices.push(piece_source_index + 2); // Lets the player castle by moving two squares
+                        indices.push(*rook_index); // Lets the player castle by moving to the rook
+                    }
+                }
+            }
+        }
+    }
+
     indices
 }
 
 pub(crate) fn pawn_valid_moves(
     board: &Board,
     piece: &Piece,
-    piece_source_index: usize,
+    move_history: &Vec<Move>,
 ) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
-    let (x, y) = translate_to_coords(piece_source_index);
+    let (x, y) = piece.get_pos();
 
-    if let White = piece.color {
-        // White pawns move in positive y direction
-        if y == 1
-            && board[translate_to_index(x, y + 1)].is_none()
-            && board[translate_to_index(x, y + 2)].is_none()
-        {
-            // Ability to move two spaces in the positive y direction on its first move
-            indices.push(translate_to_index(x, y + 2))
-        }
-        if y < BOARD_SIZE - 1 {
-            if board[translate_to_index(x, y + 1)].is_none() {
-                // Regular move 1 square forwards
-                indices.push(translate_to_index(x, y + 1))
-            }
-            if x > 0 {
-                // Pawn capture, diagonally in negative x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: Black,
-                }) = board[translate_to_index(x - 1, y + 1)]
-                {
-                    indices.push(translate_to_index(x - 1, y + 1))
-                }
-            }
-            if x < BOARD_SIZE - 1 {
-                // Pawn capture, diagonally in positive x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: Black,
-                }) = board[translate_to_index(x + 1, y + 1)]
-                {
-                    indices.push(translate_to_index(x + 1, y + 1))
-                }
-            }
-        }
+    let y_direction: i32 = if let White = piece.color {
+        // White pawn moves in positive y direction
+        1
     } else {
-        // Black pawns move in negative y direction
-        if y == BOARD_SIZE - 2
-            && board[translate_to_index(x, y - 1)].is_none()
-            && board[translate_to_index(x, y - 2)].is_none()
+        // Black pawn moves in negative y direction
+        -1
+    };
+
+    let one_forwards = (y as i32 + 1 * y_direction) as usize;
+    let two_forwards = (y as i32 + 2 * y_direction) as usize;
+
+    // If there is no piece blocking the pawn
+    if board[translate_to_index(x, one_forwards)].is_none() {
+        // Lets the pawn move two spaces forwards on its first move
+        if piece.piece_type == Pawn(false) && board[translate_to_index(x, two_forwards)].is_none() {
+            indices.push(translate_to_index(x, two_forwards))
+        }
+        // Regular move 1 square forwards
+        indices.push(translate_to_index(x, one_forwards));
+    }
+
+    let mut pawn_capture = |x_direction: i32| {
+        let adjacent_x = (x as i32 + x_direction) as usize;
+
+        // Regular diagonal capture
+        if let Some(Piece {
+            piece_type: _,
+            color: other_color,
+            index: _,
+        }) = board[translate_to_index(adjacent_x, one_forwards)].as_ref()
         {
-            // Ability to move two spaces forward on its first move
-            indices.push(translate_to_index(x, y - 2))
-        }
-        if y > 0 {
-            if board[translate_to_index(x, y - 1)].is_none() {
-                // Regular move 1 square forwards
-                indices.push(translate_to_index(x, y - 1))
-            }
-            if x > 0 {
-                // Pawn capture, diagonally in negative x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: White,
-                }) = board[translate_to_index(x - 1, y - 1)]
-                {
-                    indices.push(translate_to_index(x - 1, y - 1))
-                }
-            }
-            if x < BOARD_SIZE - 1 {
-                // Pawn capture, diagonally in positive x direction
-                if let Some(Piece {
-                    piece_type: _,
-                    color: White,
-                }) = board[translate_to_index(x + 1, y - 1)]
-                {
-                    indices.push(translate_to_index(x + 1, y - 1))
-                }
+            if &piece.color != other_color {
+                indices.push(translate_to_index(adjacent_x, one_forwards))
             }
         }
+
+        // En passant capture
+        if (piece.color == White && y == 4) || (piece.color == Black && y == 3) {
+            println!("Last move: {:?}", move_history.last());
+            if let Some(Move {
+                piece:
+                    Piece {
+                        piece_type: Pawn(_),
+                        color: other_color,
+                        index: other_pawn_previous_index,
+                    },
+                piece_dest_index: other_pawn_current_index,
+                captured_piece: _,
+                move_type: _,
+            }) = move_history.last()
+            {
+                if *other_pawn_previous_index == translate_to_index(adjacent_x, two_forwards)
+                    && *other_pawn_current_index == translate_to_index(adjacent_x, y)
+                    && &piece.color != other_color
+                {
+                    println!("Yeet 2");
+                    indices.push(translate_to_index(adjacent_x, one_forwards))
+                }
+                println!("Yeet 3");
+            }
+        }
+    };
+
+    // If the pawn is not on the edge of the board (kingside)
+    if x > 0 {
+        // Pawn capture, diagonally in negative x direction (kingside)
+        pawn_capture(-1)
+    }
+
+    // If the pawn is not on the edge of the board (queenside)
+    if x < BOARD_SIZE - 1 {
+        // Pawn capture, diagonally in positive x direction (queenside)
+        pawn_capture(1)
     }
 
     indices

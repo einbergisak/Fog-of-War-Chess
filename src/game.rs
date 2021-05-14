@@ -1,10 +1,27 @@
+
+use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
+
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
+
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
 };
 
-use crate::{default_board_state::generate_default_board, piece::{self, Board, Color::*, Piece, PieceType::*}};
+use crate::{
+    default_board_state::generate_default_board,
+    event_handler::BOARD_SIZE,
+    move_struct::{Move, MoveType::*},
+    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
+    render_utilities::{translate_to_coords, translate_to_index},
+};
+
 use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
+
+pub(crate) const BACKGROUND_COLOR: (u8, u8, u8) = (57, 43, 20);
+pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
+pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
+
 
 // Main struct
 pub(crate) struct Game {
@@ -12,25 +29,47 @@ pub(crate) struct Game {
     pub(crate) grabbed_piece: Option<(Piece, (usize, usize))>,
     pub(crate) playing_as_white: bool,
     pub(crate) board_mesh: Mesh,
+    pub(crate) active_turn: bool,
     pub(crate) connection: Networking,
-    pub(crate) active_turn: bool
+    pub(crate) menu: Menu,
+    pub(crate) lobby_sync: i32
+    pub(crate) move_history: Vec<Move>,
+    pub(crate) promoting_pawn: Option<Move>,
 }
 
 impl Game {
     pub(crate) fn new(ctx: &mut Context, playing_as_white: bool) -> Game {
+
+        let mut menu = Menu::new();
+        menu.clickables.push(Clickable {
+            id: String::from("create_room_button"),
+            transform: Transform {
+                x: SCREEN_WIDTH as i32 / 4 - 500 / 2,
+                y: SCREEN_HEIGHT as i32 / 2 - 200 / 2,
+                width: 500,
+                height: 200,
+            },
+            color: Color::from(LIGHT_COLOR),
+            hovered: false,
+            text: Text::new("Hello I like red"),
+            list_item: false
+        });
+
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
             playing_as_white,
             board_mesh: Game::get_board_mesh(ctx),
+            active_turn: playing_as_white,
             connection: Networking::new(),
-            active_turn: playing_as_white
+            menu,
+            lobby_sync: 0
+            move_history: Vec::new(),
+            promoting_pawn: None,
         }
     }
 
     fn get_board_mesh(ctx: &mut Context) -> Mesh {
-        let dark_color: (u8, u8, u8) = (181, 136, 99);
-        let light_color: (u8, u8, u8) = (240, 217, 181);
 
         let mut mesh_builder = MeshBuilder::new();
 
@@ -48,9 +87,9 @@ impl Game {
                 let color: (u8, u8, u8);
                 if (column + row) % 2 == 0 {
                     // White
-                    color = light_color;
+                    color = LIGHT_COLOR;
                 } else {
-                    color = dark_color;
+                    color = DARK_COLOR;
                 }
 
                 // Create Rectangle in mesh at position
@@ -63,7 +102,9 @@ impl Game {
         mesh
     }
 
-    pub(crate) fn move_piece_index(&mut self, piece_source_index: usize, piece_dest_index: usize) {
+    pub(crate) fn move_piece_from_board(&mut self, move_: Move) {
+        let piece_source_index = move_.piece.index;
+        let piece_dest_index = move_.piece_dest_index;
         println!(
             "Took: {} {:?}",
             piece_source_index, self.board[piece_source_index]
@@ -71,26 +112,179 @@ impl Game {
         let piece = self.board[piece_source_index]
             .take()
             .expect("Error moving piece");
-        self.move_piece(piece, piece_dest_index);
+
+        // Promotion is different from other moves, since you also need the promoting type, not just the source and destination index.
+        if let Promotion(piece_type) = move_.move_type {
+            let captured_piece = self.board[piece_dest_index].take();
+            self.board[piece_dest_index] = Some(Piece {
+                piece_type,
+                color: piece.color,
+                index: piece_dest_index,
+            });
+            self.move_history.push(Move {
+                piece: piece,
+                piece_dest_index: piece_dest_index,
+                captured_piece,
+                move_type: Promotion(piece_type),
+            });
+            // Your turn is over once you've made a move
+            self.active_turn = !self.active_turn;
+        } else {
+            self.move_grabbed_piece(piece, move_.piece_dest_index);
+        }
     }
 
-    pub(crate) fn move_piece(&mut self, piece: Piece, piece_dest_index: usize) {
+    pub(crate) fn move_grabbed_piece(&mut self, mut piece: Piece, piece_dest_index: usize) {
+        // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
-            Some(Piece{color: White, piece_type: King}) => {
+            Some(Piece {
+                color: White,
+                piece_type: King(_),
+                index: _,
+            }) => {
                 self.game_over(Black);
             }
-            Some(Piece{color: Black, piece_type: King}) => {
+            Some(Piece {
+                color: Black,
+                piece_type: King(_),
+                index: _,
+            }) => {
                 self.game_over(White);
             }
             _ => {}
         }
 
-        // Your turn is over once you've made a move
+        match &piece {
+            // If a pawn is moved for the first time its inner value is changed to true, indicating that it has moved and can no longer move two steps in one move.
+            Piece {
+                piece_type: Pawn(false),
+                color: _,
+                index: _,
+            } => piece.piece_type = Pawn(true),
+
+            // En passant
+            Piece {
+                piece_type: Pawn(true),
+                color,
+                index: _,
+            } => {
+                let (x, y) = piece.get_pos();
+
+                // If a pawn is to move diagonally without capturing, it must be attempting en passant
+                if ((*color == White
+                    && (piece_dest_index == translate_to_index(x - 1, y + 1)
+                        || piece_dest_index == translate_to_index(x + 1, y + 1)))
+                    || (*color == Black
+                        && (piece_dest_index == translate_to_index(x - 1, y - 1)
+                            || piece_dest_index == translate_to_index(x + 1, y - 1))))
+                    && self.board[piece_dest_index].is_none()
+                {
+                    // Captures the piece behind its destination tile
+                    let one_square_back = if let White = piece.color {
+                        piece_dest_index - BOARD_SIZE
+                    } else {
+                        piece_dest_index + BOARD_SIZE
+                    };
+                    let captured_piece = self.board[one_square_back].take();
+                    let move_ = Move {
+                        piece: piece.clone(),
+                        piece_dest_index,
+                        captured_piece,
+                        move_type: EnPassant,
+                    };
+                    if self.active_turn {
+                        self.connection.send("opponent", &move_.to_string());
+                    }
+                    self.active_turn = !self.active_turn;
+                    self.move_history.push(move_);
+                    let mut piece = piece.to_owned();
+                    piece.index = piece_dest_index;
+                    self.board[piece_dest_index] = Some(piece);
+                    return;
+                }
+            }
+
+            // If a rook is moved for the first time its inner value is changed to true, indicating that it has moved and cannot be castled with.
+            Piece {
+                piece_type: Rook(false),
+                color: _,
+                index: _,
+            } => piece.piece_type = Rook(true),
+
+            // Checks if a king is attempting to castle (Hasn't moved before and is attempting to move two or more squares)
+            Piece {
+                piece_type: King(false),
+                color: _,
+                index: _,
+            } => {
+                // Declares that the king has moved
+                piece.piece_type = King(true);
+                let piece_source_index = piece.get_index();
+                // Indices of possible castling moves (either moving onto the rook or two steps towards it)
+                let (rook_kingside, rook_queenside) =
+                    (piece_source_index - 3, piece_source_index + 4);
+                let (two_steps_kingside, two_steps_queenside) =
+                    (piece_source_index - 2, piece_source_index + 2);
+
+                let mut castle = |rook_pos: usize| {
+                    let (two_steps_towards_rook, direction) =
+                        if translate_to_coords(rook_pos).0 == 0 {
+                            (two_steps_kingside, -1)
+                        } else {
+                            (two_steps_queenside, 1)
+                        };
+                    let mut rook = self.board[rook_pos].take().unwrap();
+                    let move_ = Move {
+                        piece: piece.clone(),
+                        piece_dest_index,
+                        captured_piece: None,
+                        move_type: Castle,
+                    };
+                    if self.active_turn {
+                        self.connection.send("opponent", &move_.to_string());
+                    }
+                    self.active_turn = !self.active_turn;
+                    self.move_history.push(move_);
+                    let mut piece = piece.clone();
+                    piece.index = two_steps_towards_rook;
+                    rook.index = (piece_source_index as i32 + direction) as usize;
+                    self.board[two_steps_towards_rook] = Some(piece);
+                    self.board[(piece_source_index as i32 + direction) as usize] = Some(rook);
+                };
+
+                // If attempting to castle kingside
+                if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
+                    castle(rook_kingside);
+                    return;
+                }
+                // If attempting to castle queenside
+                else if piece_dest_index == two_steps_queenside
+                    || piece_dest_index == rook_queenside
+                {
+                    castle(rook_queenside);
+                    return;
+                }
+            }
+            _ => {}
+        }
+        // Places the piece on the board, returning a possible captured piece
+        let captured_piece = self.board[piece_dest_index].take();
+        let move_ = Move {
+            piece: piece.clone(),
+            piece_dest_index,
+            captured_piece,
+            move_type: Regular,
+        };
+        if self.active_turn {
+            self.connection.send("opponent", &move_.to_string());
+        }
         self.active_turn = !self.active_turn;
+        self.move_history.push(move_);
+        piece.index = piece_dest_index;
         self.board[piece_dest_index] = Some(piece);
     }
 
-    fn game_over(&mut self, winning_color: piece::Color) {
+    fn game_over(&mut self, winning_color: piece::PieceColor) {
         match winning_color {
             White => {
                 println!("Black lost, white won!");
@@ -99,6 +293,23 @@ impl Game {
             Black => {
                 println!("White lost, black won!");
                 todo!()
+            }
+        }
+    }
+
+    pub(crate) fn button_parsing(&mut self) {
+
+        for i in 0..self.menu.clickables.len() {
+            if self.menu.clickables[i].hovered {
+                match &self.menu.clickables[i].id[..] {
+                    "create_room_button" => {
+                        self.connection.send("create_room", "");
+                    }
+                    id => {
+                        println!("Join room: {}", id);
+                        self.connection.send("join_room", id)
+                    }
+                }
             }
         }
     }
