@@ -1,18 +1,21 @@
-
-use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text}};
-
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, default_board_state::generate_default_board, menu::{clickable::{Clickable, Transform}, menu_state::Menu}, piece::{self, Board, Color::*, Piece, PieceType::*}};
-
 use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
+    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text},
     Context,
 };
 
 use crate::{
     default_board_state::generate_default_board,
+    menu::{
+        clickable::{Clickable, Transform},
+        menu_state::Menu,
+    },
+    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
+
+use crate::{
     event_handler::BOARD_SIZE,
     move_struct::{Move, MoveType::*},
-    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
     render_utilities::{translate_to_coords, translate_to_index},
 };
 
@@ -21,7 +24,6 @@ use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 pub(crate) const BACKGROUND_COLOR: (u8, u8, u8) = (57, 43, 20);
 pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
 pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
-
 
 // Main struct
 pub(crate) struct Game {
@@ -32,14 +34,13 @@ pub(crate) struct Game {
     pub(crate) active_turn: bool,
     pub(crate) connection: Networking,
     pub(crate) menu: Menu,
-    pub(crate) lobby_sync: i32
+    pub(crate) lobby_sync: i32,
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
 }
 
 impl Game {
-    pub(crate) fn new(ctx: &mut Context, playing_as_white: bool) -> Game {
-
+    pub(crate) fn new(ctx: &mut Context) -> Game {
         let mut menu = Menu::new();
         menu.clickables.push(Clickable {
             id: String::from("create_room_button"),
@@ -52,25 +53,24 @@ impl Game {
             color: Color::from(LIGHT_COLOR),
             hovered: false,
             text: Text::new("Hello I like red"),
-            list_item: false
+            list_item: false,
         });
 
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
-            playing_as_white,
+            playing_as_white: false,
             board_mesh: Game::get_board_mesh(ctx),
-            active_turn: playing_as_white,
+            active_turn: false,
             connection: Networking::new(),
             menu,
-            lobby_sync: 0
+            lobby_sync: 0,
             move_history: Vec::new(),
             promoting_pawn: None,
         }
     }
 
     fn get_board_mesh(ctx: &mut Context) -> Mesh {
-
         let mut mesh_builder = MeshBuilder::new();
 
         let get_rect = |x_index: i32, y_index: i32| {
@@ -298,7 +298,6 @@ impl Game {
     }
 
     pub(crate) fn button_parsing(&mut self) {
-
         for i in 0..self.menu.clickables.len() {
             if self.menu.clickables[i].hovered {
                 match &self.menu.clickables[i].id[..] {

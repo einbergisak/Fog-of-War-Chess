@@ -1,7 +1,7 @@
 use rust_socketio::{Payload, Socket};
 
-use crate::{STATE, networking::connection::Room};
-use crate::{move_struct::Move, STATE};
+use crate::{move_struct::Move, STATE, Room};
+
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
     let app_state = STATE.get();
@@ -19,8 +19,13 @@ pub(crate) fn on_opponent_connect(payload: Payload, _: Socket) {
     match payload {
         Payload::String(str) => {
             println!("opponent connect: {}", str);
-            STATE.get().write().unwrap().event_validation.opponent_connect = true;
-        }    
+            STATE
+                .get()
+                .write()
+                .unwrap()
+                .event_validation
+                .opponent_connect = true;
+        }
         Payload::Binary(_) => {}
     }
 }
@@ -29,8 +34,13 @@ pub(crate) fn on_opponent_disconnect(payload: Payload, _: Socket) {
     match payload {
         Payload::String(str) => {
             println!("opponent disconnected: {}", str);
-            STATE.get().write().unwrap().event_validation.opponent_disconnect = true;
-        },
+            STATE
+                .get()
+                .write()
+                .unwrap()
+                .event_validation
+                .opponent_disconnect = true;
+        }
         Payload::Binary(_) => {}
     }
 }
@@ -49,7 +59,7 @@ pub(crate) fn on_join_room(payload: Payload, _: Socket) {
             if str == "true" {
                 STATE.get().write().unwrap().event_validation.join_room = true;
             }
-        },
+        }
         Payload::Binary(_) => {}
     }
 }
@@ -61,7 +71,7 @@ pub(crate) fn on_create_room(payload: Payload, _: Socket) {
             if str != "false" {
                 STATE.get().write().unwrap().event_validation.create_room = true;
             }
-        },
+        }
         Payload::Binary(_) => {}
     }
 }
@@ -88,7 +98,7 @@ pub(crate) fn on_list_room(payload: Payload, _: Socket) {
                     ";" => {
                         rooms.push(Room {
                             id: current_id.to_string(),
-                            members: current_members.parse::<i32>().unwrap()
+                            members: current_members.parse::<i32>().unwrap(),
                         });
                         current_id = String::from("");
                         current_members = String::from("");
@@ -107,7 +117,7 @@ pub(crate) fn on_list_room(payload: Payload, _: Socket) {
 
             STATE.get().write().unwrap().lobbies = rooms;
             STATE.get().write().unwrap().lobby_sync += 1;
-        },
+        }
         Payload::Binary(_) => {}
     }
 }

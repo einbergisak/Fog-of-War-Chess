@@ -1,6 +1,4 @@
-use std::{
-    sync::RwLock,
-};
+use std::sync::RwLock;
 
 use game::Game;
 use ggez::event::{self};
@@ -9,8 +7,8 @@ use ggez::{
     graphics::{self, Rect},
     ContextBuilder,
 };
-use networking::connection::{NetworkEventValidation, Room};
 use move_struct::Move;
+use networking::connection::{NetworkEventValidation, Room};
 use state::Storage;
 
 mod default_board_state;
@@ -25,8 +23,8 @@ mod networking {
     pub mod events;
 }
 mod menu {
-    pub mod menu_state;
     pub mod clickable;
+    pub mod menu_state;
     pub mod menu_utilities;
 }
 
@@ -35,7 +33,7 @@ pub(crate) struct State {
     pub(crate) count: i32,
     pub(crate) lobbies: Vec<Room>,
     pub(crate) lobby_sync: i32,
-    pub(crate) event_validation: NetworkEventValidation
+    pub(crate) event_validation: NetworkEventValidation,
     pub(crate) incoming_move: Option<Move>,
 }
 
@@ -53,8 +51,8 @@ fn main() {
             create_room: false,
             join_room: false,
             opponent_connect: false,
-            opponent_disconnect: false
-        }
+            opponent_disconnect: false,
+        },
     };
     STATE.set(RwLock::new(app_state));
 
@@ -78,14 +76,17 @@ fn main() {
             .add_resource_path(path)
             .build()
             .expect("contextbuilder fail");
-        graphics::set_drawable_size(&mut ctx, SCREEN_WIDTH, SCREEN_HEIGHT).expect("window drawable fail");
-        graphics::set_screen_coordinates(&mut ctx, Rect::new(0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT))
-            .expect("screen coord fail");
+        graphics::set_drawable_size(&mut ctx, SCREEN_WIDTH, SCREEN_HEIGHT)
+            .expect("window drawable fail");
+        graphics::set_screen_coordinates(
+            &mut ctx,
+            Rect::new(0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT),
+        )
+        .expect("screen coord fail");
 
-        let mut game = Game::new(&mut ctx, true);
+        let mut game = Game::new(&mut ctx);
 
         game.connection.send("list_rooms", "");
-
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {

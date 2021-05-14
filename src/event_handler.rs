@@ -1,23 +1,27 @@
-
-use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::{Point2}};
-
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
-
 use ggez::{
     event::{EventHandler, MouseButton},
-    graphics::{
-        self, spritebatch::SpriteBatch, DrawMode, DrawParam, Image, Mesh, MeshBuilder, Rect,
-    },
-    input::mouse,
-    nalgebra::{Point2, Vector2},
+    graphics::{self, spritebatch::SpriteBatch, DrawParam, Image},
+    nalgebra::Point2,
     Context, GameResult,
 };
 
 use crate::{
+    game::BACKGROUND_COLOR,
+    piece::{get_piece_rect, get_valid_move_indices, Piece},
+    render_utilities::{flip_board, flip_index, translate_to_index},
+    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
+};
+
+use ggez::{
+    graphics::{DrawMode, Mesh, MeshBuilder, Rect},
+    input::mouse,
+    nalgebra::Vector2,
+};
+
+use crate::{
     move_struct::{Move, MoveType::*},
-    piece::{get_piece_rect, get_valid_move_indices, Piece, PieceColor::*, PieceType::*},
-    render_utilities::{flip_board, flip_index, translate_to_coords, translate_to_index},
-    Game, STATE,
+    piece::{PieceColor::*, PieceType::*},
+    render_utilities::translate_to_coords,
 };
 
 pub(crate) const BOARD_SIZE: usize = 8;
@@ -42,20 +46,30 @@ impl EventHandler for Game {
         }
 
         // Check if lobbies have changed
-        if self.lobby_sync != STATE.get().read().unwrap().lobby_sync {
-            self.menu.clear_list_items_from_list();
-            self.menu.generate_list_item_from_list(&STATE.get().read().unwrap().lobbies);
-            self.lobby_sync = STATE.get().read().unwrap().lobby_sync;
+        if self.menu.visible {
+            if self.lobby_sync != STATE.get().read().unwrap().lobby_sync {
+                self.menu.clear_list_items_from_list();
+                self.menu
+                    .generate_list_item_from_list(&STATE.get().read().unwrap().lobbies);
+                self.lobby_sync = STATE.get().read().unwrap().lobby_sync;
+            }
+
+            // Check if network state has updated
+            let event_validation = &STATE.get().read().unwrap().event_validation;
+            if event_validation.create_room {
+                self.menu.visible = false;
+                self.active_turn = true;
+                self.playing_as_white = true;
+                println!("CREATE ROOM RESPONSE OK!");
+
+                //STATE.get().write().unwrap().event_validation.create_room = false;
+            } else if event_validation.join_room {
+                self.menu.visible = false;
+
+                //STATE.get().write().unwrap().event_validation.join_room = false;
+            }
         }
 
-        // Check if network state has updated
-        let event_validation = &STATE.get().read().unwrap().event_validation;
-        if event_validation.create_room {
-            self.menu.visible = false;
-        } else if event_validation.join_room {
-            self.menu.visible = false;
-            self.playing_as_white = false;
-        }
         Ok(())
     }
 
@@ -63,32 +77,32 @@ impl EventHandler for Game {
         graphics::clear(ctx, graphics::BLACK);
 
         // Draw background
-		let background = graphics::Mesh::new_rectangle(
-			ctx, 
-			graphics::DrawMode::fill(), 
-			graphics::Rect::new(
-				0.0, 
-				0.0, 
-				SCREEN_WIDTH, 
-				SCREEN_HEIGHT
-			), 
-            graphics::Color::from(BACKGROUND_COLOR)
-		).expect("Could not render list");
+        let background = graphics::Mesh::new_rectangle(
+            ctx,
+            graphics::DrawMode::fill(),
+            graphics::Rect::new(0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT),
+            graphics::Color::from(BACKGROUND_COLOR),
+        )
+        .expect("Could not render list");
 
-		graphics::draw(ctx, &background, graphics::DrawParam::default()).expect("Could not render background");
+        graphics::draw(ctx, &background, graphics::DrawParam::default())
+            .expect("Could not render background");
 
         // If menu is active we don't bother showing the rest of the game
         if self.menu.visible {
             self.menu.render(ctx);
-            return graphics::present(ctx)
+            return graphics::present(ctx);
         }
 
         // Draws the background board
-        graphics::draw(ctx, &self.board_mesh, (Point2::<f32>::new(BOARD_ORIGO_X, BOARD_ORIGO_Y),))?;
+        graphics::draw(
+            ctx,
+            &self.board_mesh,
+            (Point2::<f32>::new(BOARD_ORIGO_X, BOARD_ORIGO_Y),),
+        )?;
 
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image.clone());
-
 
         let board_to_render = if self.playing_as_white {
             flip_board(&self.board)
@@ -222,11 +236,10 @@ impl EventHandler for Game {
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
             MouseButton::Left => {
-
-                 // UI logic
+                // UI logic
                 if self.menu.visible {
                     self.button_parsing();
-                    return
+                    return;
                 }
 
                 //------------------------------------------------------
@@ -336,10 +349,9 @@ impl EventHandler for Game {
     ) {
         match button {
             MouseButton::Left => {
-
                 // UI logic
                 if self.menu.visible {
-                    return
+                    return;
                 }
 
                 //------------------------------------------------------
@@ -395,9 +407,11 @@ impl EventHandler for Game {
 
                     // En passant
                     println!("Moving piece: {:?}", &piece);
-                    if piece.piece_type == Pawn(true) && ((piece.color == White
-                        && translate_to_coords(piece_dest_index).1 == BOARD_SIZE - 1)
-                        || (piece.color == Black && translate_to_coords(piece_dest_index).1 == 0))
+                    if piece.piece_type == Pawn(true)
+                        && ((piece.color == White
+                            && translate_to_coords(piece_dest_index).1 == BOARD_SIZE - 1)
+                            || (piece.color == Black
+                                && translate_to_coords(piece_dest_index).1 == 0))
                     {
                         println!("Noticed pawn promotion");
                         self.promoting_pawn = Some(Move {
