@@ -1,5 +1,5 @@
 use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text},
+    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
 };
 

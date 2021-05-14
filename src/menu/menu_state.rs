@@ -3,7 +3,7 @@ use super::{
     menu_utilities::{apply_scroll, is_within_boundary},
 };
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR}};
-use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
+use ggez::{Context, graphics::{self, Drawable, Font, Text}, nalgebra::{Point2, Vector2}};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
 pub(crate) const LIST_HEIGHT: f32 = SCREEN_HEIGHT as f32 * 0.8;
@@ -113,6 +113,18 @@ impl Menu {
     }
 
     pub(crate) fn render(&mut self, ctx: &mut Context) {
+
+        if let Ok(sprite) = graphics::Image::new(ctx, "/logo.png") {
+            sprite.draw(
+                ctx, 
+                graphics::DrawParam::default()
+                .dest(Point2::new(SCREEN_WIDTH / 4.0 - 1000.0 * 0.15 / 2.0, 100.0))
+                .scale(Vector2::new(0.15, 0.15))
+            ).expect("COULD NOT DRAW IMAGE");
+        } else {
+            println!("COULD NOT FIND IMAGE");
+        }
+
         // Draw list
         let list_drawable = graphics::Mesh::new_rectangle(
             ctx,
@@ -174,6 +186,8 @@ impl Menu {
 
             text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
 
+            let color = if clickable.list_item {LIGHT_COLOR} else {DARK_COLOR};
+
             graphics::draw(
                 ctx,
                 &text,
@@ -182,7 +196,7 @@ impl Menu {
                         clickable.transform.x as f32,
                         clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0
                     ))
-                    .color(graphics::Color::from(DARK_COLOR))
+                    .color(graphics::Color::from(color))
             ).expect("Error drawing clickable text");
         }
 
@@ -251,5 +265,39 @@ impl Menu {
             }
             Err(_) => {}
         }
+
+        let mut text = Text::new("Open lobbies");
+            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
+            let scale = SCREEN_HEIGHT * 0.08;
+            text.set_font(font, graphics::Scale::uniform(scale));
+
+            text.set_bounds(Point2::new(LIST_WIDTH, SCREEN_HEIGHT * 0.09), graphics::Align::Center);
+
+            graphics::draw(
+                ctx,
+                &text,
+                graphics::DrawParam::default()
+                    .dest(Point2::<f32>::new(
+                        LIST_START_X,
+                        SCREEN_HEIGHT * 0.01
+                    ))
+                    .color(graphics::Color::from(LIGHT_COLOR))
+            ).expect("Error drawing clickable text");
+
+        let mut text = Text::new("A game create by Isak Einberg & Hampus Hallkvist");
+        let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
+        let scale = 20.0;
+        text.set_font(font, graphics::Scale::uniform(scale));
+
+        graphics::draw(
+            ctx,
+            &text,
+            graphics::DrawParam::default()
+                .dest(Point2::<f32>::new(
+                    25.0,
+                    SCREEN_HEIGHT - 45.0
+                ))
+                .color(graphics::Color::from(LIGHT_COLOR))
+        ).expect("Error drawing clickable text");
     }
 }

@@ -59,7 +59,7 @@ fn main() {
     STATE.set(RwLock::new(app_state));
 
     let mut path;
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+    if let Ok(manifest_dir) = std::env::current_exe() {
         path = std::path::PathBuf::from(manifest_dir.clone());
         path.push("resources");
 

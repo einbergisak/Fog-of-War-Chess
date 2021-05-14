@@ -1,6 +1,6 @@
 use ggez::graphics;
 
-use crate::{networking::connection::Room, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::DARK_COLOR, networking::connection::Room};
 
 use super::{
     clickable::{Clickable, Transform},
@@ -83,7 +83,7 @@ impl Menu {
                 },
                 hovered: false,
                 list_item: true,
-                color: graphics::Color::from_rgb(200, 200, 200),
+                color: graphics::Color::from(DARK_COLOR),
                 text: elements[i].id.clone(),
             })
         }
