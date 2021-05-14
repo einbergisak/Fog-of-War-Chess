@@ -169,7 +169,7 @@ impl EventHandler for Game {
             move_type: Promotion(_),
         }) = self.promoting_pawn.as_ref()
         {
-            let bounds = Rect::new_i32(0, 0, BOARD_WIDTH, BOARD_WIDTH);
+            let bounds = Rect::new_i32(BOARD_ORIGO_X as i32, BOARD_ORIGO_Y as i32, BOARD_WIDTH, BOARD_WIDTH);
             let overlay = Mesh::new_rectangle(
                 ctx,
                 DrawMode::fill(),
@@ -190,7 +190,7 @@ impl EventHandler for Game {
             for n in 1..=4 {
                 let src_rect = Rect::new(n as f32 / 6.0, image_y, 1.0 / 6.0, 0.5);
                 let (x, y) = ((flipped_x_index as i32) * TILE_SIZE, (n - 1) * TILE_SIZE);
-                let mut dest_rect = Rect::new_i32(x, y, TILE_SIZE, TILE_SIZE);
+                let mut dest_rect = Rect::new_i32(x + BOARD_ORIGO_X as i32, y + BOARD_ORIGO_Y as i32, TILE_SIZE, TILE_SIZE);
                 let center = Point2::new(
                     dest_rect.x + dest_rect.w / 2.0,
                     dest_rect.y + dest_rect.w / 2.0,

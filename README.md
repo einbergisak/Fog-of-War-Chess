@@ -1,6 +1,6 @@
 # projinda
 
-# Description 
+# Description
 An online chess game in the Fog-of-war variant. You can only see squares which you can move to and/or attack with your own pieces.
 
 Players can create and join online game lobbies.
@@ -32,13 +32,13 @@ Upplägg:
     * ~Turn-system: Spelare kan endast flytta sina egna pjäser på sin egen turn.~
     * ~Win/lose system~
   * Main menu
-  * Special rules (rockad/castling, promotion, en passant)
+  * ~Special rules (rockad/castling, promotion, en passant)~
   * Fog of war-system
     * (Pjäser kan “se” de rutor som de kan attackera och/eller gå till)
   * Movement indication
   * Select by clicking
-  
-  
+
+
 * Om tid finns:
   * Schackklocka
   * Pre-moves (Isak)
