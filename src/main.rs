@@ -10,11 +10,13 @@ use ggez::{
     ContextBuilder,
 };
 use networking::connection::{NetworkEventValidation, Room};
+use move_struct::Move;
 use state::Storage;
 
 mod default_board_state;
 mod event_handler;
 mod game;
+mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;
@@ -31,10 +33,10 @@ mod menu {
 #[derive(Debug)]
 pub(crate) struct State {
     pub(crate) count: i32,
-    pub(crate) incoming_move: Option<(usize, usize)>,
     pub(crate) lobbies: Vec<Room>,
     pub(crate) lobby_sync: i32,
     pub(crate) event_validation: NetworkEventValidation
+    pub(crate) incoming_move: Option<Move>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -83,6 +85,7 @@ fn main() {
         let mut game = Game::new(&mut ctx, true);
 
         game.connection.send("list_rooms", "");
+
 
         // Run!
         match event::run(&mut ctx, &mut event_loop, &mut game) {
