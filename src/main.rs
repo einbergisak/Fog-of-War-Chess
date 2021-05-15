@@ -18,6 +18,7 @@ mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;
+pub mod enter_name_screen;
 mod networking {
     pub mod connection;
     pub mod events;
@@ -31,7 +32,8 @@ mod menu {
 
 #[derive(Debug, Clone)]
 pub(crate) struct State {
-    pub(crate) count: i32,
+    pub(crate) entering_name: bool,
+    pub(crate) name: String,
     pub(crate) lobbies: Vec<Room>,
     pub(crate) lobby_sync: i32,
     pub(crate) event_validation: NetworkEventValidation,
@@ -45,7 +47,8 @@ const SCREEN_HEIGHT: f32 = 900.0;
 
 fn main() {
     let app_state = State {
-        count: 0,
+        entering_name: true,
+        name: String::from(""),
         incoming_move: None,
         lobbies: Vec::new(),
         lobby_sync: 0,
@@ -56,7 +59,8 @@ fn main() {
             opponent_disconnect: false,
             play_again: false,
             set_color: None,
-            resign: false
+            resign: false,
+            opponent_name: None
         },
         room_id: None
     };

@@ -54,6 +54,7 @@ impl Game {
         });
 
         let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
+        
         // Resign button for in game
         menu.clickables.push(Clickable {
             id: String::from("resign_game_button"),
@@ -68,6 +69,22 @@ impl Game {
             list_item: false,
             text: String::from("Resign"),
             group: ClickableGroup::InGame
+        });
+
+        // Submit name button
+        menu.clickables.push(Clickable {
+            id: String::from("submit_name_button"),
+            transform: Transform {
+                x: (SCREEN_WIDTH / 2.0 - 150.0) as i32,
+                y: (SCREEN_HEIGHT * 3.0 / 4.0 - 125.0 / 2.0) as i32,
+                width: 300,
+                height: 125
+            },
+            color: Color::from(LIGHT_COLOR),
+            hovered: false,
+            list_item: false,
+            text: String::from("Submit name"),
+            group: ClickableGroup::EnterName
         });
 
         Game {
@@ -354,21 +371,25 @@ impl Game {
         self.grabbed_piece = None;
     }
 
-    pub(crate) fn button_parsing(&mut self) {
-        for i in 0..self.menu.clickables.len() {
-            if self.menu.clickables[i].hovered {
+    #[allow(unused_assignments)]
+    pub(crate) fn button_parsing(&mut self, allowed_group: Vec<ClickableGroup>) {
+        let read_state = STATE.get().read().unwrap().clone();
+        
+        for mut i in 0..self.menu.clickables.len() {
+            
+            if self.menu.clickables[i].hovered && allowed_group.contains(&self.menu.clickables[i].group) {
+                
                 match &self.menu.clickables[i].id[..] {
-                    "create_room_button" if self.menu.visible => {
-                        println!("CLICKED THE BUTTON");
+                    "create_room_button" => {
                         self.connection.send("create_room", "");
                     }
-                    "play_again" if self.winner.is_some() => {
+                    "play_again" => {
                         self.reset_game();
                         self.playing_as_white = !self.playing_as_white;
                         self.active_turn = self.playing_as_white;
                         self.connection.send("play_again", "");
                     }
-                    "goto_main_menu" if self.winner.is_some() => {
+                    "goto_main_menu" => {
                         STATE.get().write().unwrap().room_id = None;
                         self.menu.visible = true;
                         self.reset_game();
@@ -378,12 +399,31 @@ impl Game {
                     "resign_game_button" => {
                         let winner = if self.playing_as_white { PieceColor::Black } else { PieceColor::White };
                         self.game_over(winner);
-                        self.connection.send("resign", "")
+                        self.connection.send("resign", "");
                     }
-                    id => {
-                        println!("Join room: {}", id);
-                        STATE.get().write().unwrap().room_id = Some(String::from(id));
-                        self.connection.send("join_room", id)
+                    "submit_name_button" => {
+                        if read_state.name.len() > 0 {
+                            STATE.get().write().unwrap().entering_name = false;
+                            self.connection.send("set_name", &read_state.name);
+
+                            // Delete the button after it has been used
+                            let index = self.menu.clickables.iter().position(|current| current.id == String::from("submit_name_button")).unwrap();
+                            self.menu.clickables.remove(index);
+                            
+                            i -= 1;
+                        }
+                    }
+                    id if self.menu.clickables[i].list_item => {
+                        if id.len() != 4 {
+                            println!("Wrong formatted id: {}", id);
+                        } else {
+                            println!("Join room: {}", id);
+                            STATE.get().write().unwrap().room_id = Some(String::from(id));
+                            self.connection.send("join_room", id);
+                        }
+                    }
+                    data => {
+                        println!("Unused button click {}", data);
                     }
                 }
             }

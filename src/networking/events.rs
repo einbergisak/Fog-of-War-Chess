@@ -158,3 +158,12 @@ match payload {
         Payload::Binary(_) => {}
     }
 }
+
+pub(crate) fn on_get_opponent_name(payload: Payload, _: Socket) {
+    match payload {
+        Payload::String(opponent_name) => {
+            STATE.get().write().unwrap().event_validation.opponent_name = Some(opponent_name.replace("\"", ""));
+        }
+        Payload::Binary(_) => {}
+    }
+}

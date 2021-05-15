@@ -2,10 +2,11 @@ use ggez::graphics;
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum ClickableGroup {
-    MainMenu = 0,
-    MainMenuList = 1,
-    InGame = 2,
-    GameOverMenu = 3
+    EnterName = 0,
+    MainMenu = 1,
+    MainMenuList = 2,
+    InGame = 3,
+    GameOverMenu = 4
 }
 
 pub(crate) struct Transform {

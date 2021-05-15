@@ -13,7 +13,8 @@ pub(crate) struct NetworkEventValidation {
     pub(crate) opponent_disconnect: bool,
     pub(crate) play_again: bool,
     pub(crate) set_color: Option<PieceColor>,
-    pub(crate) resign: bool
+    pub(crate) resign: bool,
+    pub(crate) opponent_name: Option<String>
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +57,9 @@ impl Networking {
             })
             .on("resign", |payload, socket| {
                 events::on_resign(payload, socket)
+            })
+            .on("get_opponent_name", |payload, socket| {
+                events::on_get_opponent_name(payload, socket)
             })
             .on("error", |err, _| eprintln!("Error: {:#?}", err))
             .connect()
