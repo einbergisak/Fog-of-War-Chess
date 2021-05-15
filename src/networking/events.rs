@@ -140,12 +140,20 @@ pub(crate) fn on_set_opponent_color(payload: Payload, _: Socket) {
 match payload {
         Payload::String(mut str) => {
             str = str.replace("\"", "");
-            println!("Received PING: {}", str);
             if str == "white" {
                 STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::White);
             } else {
                 STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::Black);
             }
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_resign(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(_) => {
+            STATE.get().write().unwrap().event_validation.resign = true;
         }
         Payload::Binary(_) => {}
     }

@@ -4,7 +4,8 @@ use ggez::graphics;
 pub(crate) enum ClickableGroup {
     MainMenu = 0,
     MainMenuList = 1,
-    GameOverMenu = 2
+    InGame = 2,
+    GameOverMenu = 3
 }
 
 pub(crate) struct Transform {

@@ -3,7 +3,7 @@ use ggez::{
     Context,
 };
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, event_handler::BOARD_WIDTH, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
 
 use crate::{
     event_handler::BOARD_SIZE,
@@ -16,6 +16,7 @@ use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 pub(crate) const BACKGROUND_COLOR: (u8, u8, u8) = (57, 43, 20);
 pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
 pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
+pub(crate) const ERROR_COLOR: (u8, u8, u8) = (176, 0, 32);
 
 // Main struct
 pub(crate) struct Game {
@@ -36,6 +37,7 @@ pub(crate) struct Game {
 impl Game {
     pub(crate) fn new(ctx: &mut Context) -> Game {
         let mut menu = Menu::new();
+        // Create button for main menu
         menu.clickables.push(Clickable {
             id: String::from("create_room_button"),
             transform: Transform {
@@ -49,6 +51,23 @@ impl Game {
             text: String::from("Create room"),
             list_item: false,
             group: ClickableGroup::MainMenu
+        });
+
+        let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
+        // Resign button for in game
+        menu.clickables.push(Clickable {
+            id: String::from("resign_game_button"),
+            transform: Transform {
+                x: (board_right_edge + (SCREEN_WIDTH - board_right_edge) / 2.0 - 125.0 / 2.0) as i32,
+                y: (SCREEN_HEIGHT / 2.0 - 25.0) as i32,
+                width: 125,
+                height: 50
+            },
+            color: Color::from(ERROR_COLOR),
+            hovered: false,
+            list_item: false,
+            text: String::from("Resign"),
+            group: ClickableGroup::InGame
         });
 
         Game {
@@ -281,7 +300,7 @@ impl Game {
         self.board[piece_dest_index] = Some(piece);
     }
 
-    fn game_over(&mut self, winning_color: PieceColor) {
+    pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
         match winning_color {
             PieceColor::White => {
                 self.winner = Some(PieceColor::White);
@@ -355,6 +374,11 @@ impl Game {
                         self.reset_game();
                         self.connection.send("opponent_leave_lobby", "");
                         self.connection.send("list_rooms", "");
+                    }
+                    "resign_game_button" => {
+                        let winner = if self.playing_as_white { PieceColor::Black } else { PieceColor::White };
+                        self.game_over(winner);
+                        self.connection.send("resign", "")
                     }
                     id => {
                         println!("Join room: {}", id);

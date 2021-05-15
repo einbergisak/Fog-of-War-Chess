@@ -105,6 +105,11 @@ impl EventHandler for Game {
                 }
                 _ => {}
             }
+            if event_validation.resign {
+                let winner = if self.playing_as_white { White } else { Black };
+                self.game_over(winner);
+                STATE.get().write().unwrap().event_validation.resign = false;
+            }
         }
 
         Ok(())
@@ -287,6 +292,8 @@ impl EventHandler for Game {
             graphics::draw(ctx, &promotion_piece_batch, (Point2::<f32>::new(0.0, 0.0),))?;
         }
 
+        self.menu.draw_clickables(ctx, vec![ClickableGroup::InGame]);
+
         // Draw game over menu
         if self.winner.is_some() {
             self.menu.render_game_over(ctx, self.winner);
@@ -298,9 +305,11 @@ impl EventHandler for Game {
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
             MouseButton::Left => {
+
+                self.button_parsing();
+
                 // UI logic
                 if self.menu.visible || self.winner.is_some() {
-                    self.button_parsing();
                     return;
                 }
 
@@ -504,6 +513,8 @@ impl EventHandler for Game {
         } else if self.menu.visible {
             active_groups.push(ClickableGroup::MainMenu);
             active_groups.push(ClickableGroup::MainMenuList);
+        } else { // In game
+            active_groups.push(ClickableGroup::InGame);
         }
 
         self.menu.on_mouse_move(ctx, x, y, active_groups);
