@@ -35,7 +35,7 @@ pub(crate) struct State {
     pub(crate) lobby_sync: i32,
     pub(crate) event_validation: NetworkEventValidation,
     pub(crate) incoming_move: Option<Move>,
-    pub(crate) room_id: Option<String>
+    pub(crate) room_id: Option<String>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -54,7 +54,7 @@ fn main() {
             opponent_connect: false,
             opponent_disconnect: false,
         },
-        room_id: None
+        room_id: None,
     };
     STATE.set(RwLock::new(app_state));
 

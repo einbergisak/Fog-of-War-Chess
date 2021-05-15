@@ -2,8 +2,15 @@ use super::{
     clickable::{Clickable, Transform},
     menu_utilities::{apply_scroll, is_within_boundary},
 };
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR}};
-use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
+use crate::{
+    game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR},
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
+use ggez::{
+    graphics::{self, Font, Text},
+    nalgebra::Point2,
+    Context,
+};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
 pub(crate) const LIST_HEIGHT: f32 = SCREEN_HEIGHT as f32 * 0.8;
@@ -132,7 +139,7 @@ impl Menu {
 
         // Go through all clickables and draw them
         for clickable in &mut self.clickables {
-            let mut color =clickable.color;
+            let mut color = clickable.color;
             if clickable.hovered {
                 color = graphics::Color::from_rgb_u32(clickable.color.to_rgb_u32() - 5000);
             }
@@ -145,18 +152,14 @@ impl Menu {
                 scroll = self.list.scroll
             }
 
-            let rect =  graphics::Rect::new(
+            let rect = graphics::Rect::new(
                 clickable.transform.x as f32,
                 clickable.transform.y as f32 + apply_scroll(scroll),
                 clickable.transform.width as f32,
                 clickable.transform.height as f32,
             );
-            let drawable_clickable = graphics::Mesh::new_rectangle(
-                ctx,
-                graphics::DrawMode::fill(),
-                rect,
-                color,
-            );
+            let drawable_clickable =
+                graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color);
 
             match drawable_clickable {
                 Ok(drawable_clickable) => {
@@ -169,7 +172,10 @@ impl Menu {
 
             let mut text = Text::new(clickable.text.clone());
             let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
-            let scale = f32::min(clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32, clickable.transform.height as f32 * 0.8);
+            let scale = f32::min(
+                clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32,
+                clickable.transform.height as f32 * 0.8,
+            );
             text.set_font(font, graphics::Scale::uniform(scale));
 
             text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
@@ -180,10 +186,11 @@ impl Menu {
                 graphics::DrawParam::default()
                     .dest(Point2::<f32>::new(
                         clickable.transform.x as f32,
-                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0
+                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0,
                     ))
-                    .color(graphics::Color::from(DARK_COLOR))
-            ).expect("Error drawing clickable text");
+                    .color(graphics::Color::from(DARK_COLOR)),
+            )
+            .expect("Error drawing clickable text");
         }
 
         // Draw scroll chin

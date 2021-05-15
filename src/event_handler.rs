@@ -1,6 +1,16 @@
-use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Font, Image, Text, spritebatch::SpriteBatch}, nalgebra::Point2};
+use ggez::{
+    event::{EventHandler, MouseButton},
+    graphics::{self, spritebatch::SpriteBatch, DrawParam, Font, Image, Text},
+    nalgebra::Point2,
+    Context, GameResult,
+};
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{
+    game::{BACKGROUND_COLOR, LIGHT_COLOR},
+    piece::{get_piece_rect, get_valid_move_indices, Piece},
+    render_utilities::{flip_index, translate_to_index},
+    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
+};
 
 use ggez::{
     graphics::{DrawMode, Mesh, MeshBuilder, Rect},
@@ -52,9 +62,14 @@ impl EventHandler for Game {
                 self.playing_as_white = true;
                 println!("CREATE ROOM RESPONSE OK!");
 
+                self.update_available_moves();
+
                 //STATE.get().write().unwrap().event_validation.create_room = false;
             } else if event_validation.join_room {
                 self.menu.visible = false;
+
+
+                self.update_available_moves();
 
                 //STATE.get().write().unwrap().event_validation.join_room = false;
             }
@@ -81,7 +96,7 @@ impl EventHandler for Game {
         // If menu is active we don't bother showing the rest of the game
         if self.menu.visible {
             self.menu.render(ctx);
-            return graphics::present(ctx);
+            return graphics::present(ctx)
         }
 
         // Draws the background board
@@ -103,66 +118,87 @@ impl EventHandler for Game {
                 ctx,
                 &text,
                 graphics::DrawParam::default()
-                    .dest(Point2::<f32>::new(
-                        0.0,
-                        0.0
-                    ))
-                    .color(graphics::Color::from(LIGHT_COLOR))
-            ).expect("Error drawing clickable text");
+                    .dest(Point2::<f32>::new(0.0, 0.0))
+                    .color(graphics::Color::from(LIGHT_COLOR)),
+            )
+            .expect("Error drawing clickable text");
         }
 
         let piece_image = Image::new(ctx, "/pieces.png")?;
         let mut piece_batch = SpriteBatch::new(piece_image.clone());
 
-        let board_to_render = if self.playing_as_white {
-            flip_board(&self.board)
-        } else {
-            self.board.clone()
-        };
-
         let grabbed_index: Option<usize>;
         let grabbed_param: Option<DrawParam>;
+
         // Renders the grabbed piece
         if let Some((piece, (x, y))) = &self.grabbed_piece {
             grabbed_index = Some(translate_to_index(x.clone(), y.clone()));
 
             let rect = get_piece_rect(&piece);
-            let (x, y) = (
+            let (cursor_x, cursor_y) = (
                 ggez::input::mouse::position(ctx).x,
                 ggez::input::mouse::position(ctx).y,
             );
             grabbed_param = Some(DrawParam::default().src(rect).dest(Point2::new(
-                x - TILE_SIZE as f32 / 2.0,
-                y - TILE_SIZE as f32 / 2.0,
+                cursor_x - TILE_SIZE as f32 / 2.0,
+                cursor_y - TILE_SIZE as f32 / 2.0,
             )));
         } else {
             grabbed_index = None;
             grabbed_param = None;
         };
 
+        let mut hidden_tiles = MeshBuilder::new();
+
         // Render each piece in the board
-        for (index, tile) in board_to_render.iter().enumerate() {
-            if let Some(g_i) = &grabbed_index {
-                if index == *g_i {
+        for (index, tile) in self.board.iter().enumerate() {
+            let flipped_index = if self.playing_as_white {
+                flip_index(index)
+            } else {
+                index
+            };
+
+            let rel_x = (flipped_index % BOARD_SIZE) as f32;
+            let rel_y = (flipped_index / BOARD_SIZE) as f32;
+            let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
+            let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+
+            if let Some(i) = &grabbed_index {
+                if index == *i {
+                    let rect = Rect::new(abs_x, abs_y, TILE_SIZE as f32, TILE_SIZE as f32);
+                    hidden_tiles.rectangle(
+                        DrawMode::fill(),
+                        rect,
+                        graphics::Color::from_rgba(30, 30, 30, 240),
+                    );
                     continue;
                 }
             }
-            match tile {
-                Some(piece) => {
+            // Only draw the tiles which are in your vision
+            if self.available_moves.contains(&index) {
+                if let Some(piece) = tile {
                     let rect = get_piece_rect(piece);
-
-                    let y = index / BOARD_SIZE;
-                    let x = index % BOARD_SIZE;
-                    let param = DrawParam::default().src(rect).dest(Point2::new(
-                        (x as f32) * TILE_SIZE as f32 + BOARD_ORIGO_X,
-                        (y as f32) * TILE_SIZE as f32 + BOARD_ORIGO_Y,
-                    ));
+                    let param = DrawParam::default()
+                        .src(rect)
+                        .dest(Point2::new(abs_x, abs_y));
 
                     piece_batch.add(param);
                 }
-                None => {}
+            }
+            // The other tiles are hidden in the fog of war
+            else {
+                let rect = Rect::new(abs_x, abs_y, TILE_SIZE as f32, TILE_SIZE as f32);
+                hidden_tiles.rectangle(
+                    DrawMode::fill(),
+                    rect,
+                    graphics::Color::from_rgba(30, 30, 30, 240),
+                );
             }
         }
+
+        // Draw hidden tiles (aka "fog")
+        let hidden_tiles_mesh = hidden_tiles.build(ctx)?;
+        graphics::draw(ctx, &hidden_tiles_mesh, (Point2::<f32>::new(0.0, 0.0),))?;
 
         if let Some(param) = grabbed_param {
             piece_batch.add(param);
@@ -179,7 +215,12 @@ impl EventHandler for Game {
             move_type: Promotion(_),
         }) = self.promoting_pawn.as_ref()
         {
-            let bounds = Rect::new_i32(BOARD_ORIGO_X as i32, BOARD_ORIGO_Y as i32, BOARD_WIDTH, BOARD_WIDTH);
+            let bounds = Rect::new_i32(
+                BOARD_ORIGO_X as i32,
+                BOARD_ORIGO_Y as i32,
+                BOARD_WIDTH,
+                BOARD_WIDTH,
+            );
             let overlay = Mesh::new_rectangle(
                 ctx,
                 DrawMode::fill(),
@@ -200,7 +241,12 @@ impl EventHandler for Game {
             for n in 1..=4 {
                 let src_rect = Rect::new(n as f32 / 6.0, image_y, 1.0 / 6.0, 0.5);
                 let (x, y) = ((flipped_x_index as i32) * TILE_SIZE, (n - 1) * TILE_SIZE);
-                let mut dest_rect = Rect::new_i32(x + BOARD_ORIGO_X as i32, y + BOARD_ORIGO_Y as i32, TILE_SIZE, TILE_SIZE);
+                let mut dest_rect = Rect::new_i32(
+                    x + BOARD_ORIGO_X as i32,
+                    y + BOARD_ORIGO_Y as i32,
+                    TILE_SIZE,
+                    TILE_SIZE,
+                );
                 let center = Point2::new(
                     dest_rect.x + dest_rect.w / 2.0,
                     dest_rect.y + dest_rect.w / 2.0,
@@ -410,7 +456,8 @@ impl EventHandler for Game {
                     return;
                 }
 
-                let valid_moves = get_valid_move_indices(self, &piece, piece_source_index);
+                let valid_moves = get_valid_move_indices(self, &piece);
+                println!("Current turn: {}", self.active_turn);
                 println!("Valid moves: {:?}", valid_moves);
                 if valid_moves.contains(&piece_dest_index) && self.active_turn {
                     println!("Move to index {} is valid", piece_dest_index);

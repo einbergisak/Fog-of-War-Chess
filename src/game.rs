@@ -1,5 +1,5 @@
 use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect, Text},
+    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
 };
 
@@ -9,6 +9,7 @@ use crate::{
         clickable::{Clickable, Transform},
         menu_state::Menu,
     },
+    move_struct::MoveType,
     piece::{self, Board, Piece, PieceColor::*, PieceType::*},
     SCREEN_HEIGHT, SCREEN_WIDTH,
 };
@@ -37,6 +38,7 @@ pub(crate) struct Game {
     pub(crate) lobby_sync: i32,
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
+    pub(crate) available_moves: Vec<usize>,
 }
 
 impl Game {
@@ -67,6 +69,7 @@ impl Game {
             lobby_sync: 0,
             move_history: Vec::new(),
             promoting_pawn: None,
+            available_moves: Vec::new(),
         }
     }
 
@@ -115,6 +118,7 @@ impl Game {
 
         // Promotion is different from other moves, since you also need the promoting type, not just the source and destination index.
         if let Promotion(piece_type) = move_.move_type {
+            println!("Noticed promotion!!!!");
             let captured_piece = self.board[piece_dest_index].take();
             self.board[piece_dest_index] = Some(Piece {
                 piece_type,
@@ -129,7 +133,9 @@ impl Game {
             });
             // Your turn is over once you've made a move
             self.active_turn = !self.active_turn;
+            self.update_available_moves();
         } else {
+            println!("Moving! active_turn: {}", self.active_turn);
             self.move_grabbed_piece(piece, move_.piece_dest_index);
         }
     }
@@ -185,21 +191,15 @@ impl Game {
                     } else {
                         piece_dest_index + BOARD_SIZE
                     };
-                    let captured_piece = self.board[one_square_back].take();
-                    let move_ = Move {
-                        piece: piece.clone(),
+                    self.move_to_end_turn(
+                        &mut piece,
                         piece_dest_index,
-                        captured_piece,
-                        move_type: EnPassant,
-                    };
-                    if self.active_turn {
-                        self.connection.send("opponent", &move_.to_string());
-                    }
-                    self.active_turn = !self.active_turn;
-                    self.move_history.push(move_);
-                    let mut piece = piece.to_owned();
+                        Some(one_square_back),
+                        EnPassant,
+                    );
                     piece.index = piece_dest_index;
                     self.board[piece_dest_index] = Some(piece);
+                    self.update_available_moves();
                     return;
                 }
             }
@@ -234,17 +234,7 @@ impl Game {
                             (two_steps_queenside, 1)
                         };
                     let mut rook = self.board[rook_pos].take().unwrap();
-                    let move_ = Move {
-                        piece: piece.clone(),
-                        piece_dest_index,
-                        captured_piece: None,
-                        move_type: Castle,
-                    };
-                    if self.active_turn {
-                        self.connection.send("opponent", &move_.to_string());
-                    }
-                    self.active_turn = !self.active_turn;
-                    self.move_history.push(move_);
+                    self.move_to_end_turn(&mut piece, piece_dest_index, None, Castle);
                     let mut piece = piece.clone();
                     piece.index = two_steps_towards_rook;
                     rook.index = (piece_source_index as i32 + direction) as usize;
@@ -254,6 +244,7 @@ impl Game {
 
                 // If attempting to castle kingside
                 if piece_dest_index == rook_kingside || piece_dest_index == two_steps_kingside {
+                    println!("Castling kingside");
                     castle(rook_kingside);
                     return;
                 }
@@ -264,24 +255,65 @@ impl Game {
                     castle(rook_queenside);
                     return;
                 }
+                self.update_available_moves();
             }
             _ => {}
         }
-        // Places the piece on the board, returning a possible captured piece
-        let captured_piece = self.board[piece_dest_index].take();
+
+        // Matching special moves. Although this match statement has the same &piece as the one above,
+        // this one is needed to let the above moves fall under the "_ => {}" match arm.
+        self.move_to_end_turn(
+            &mut piece,
+            piece_dest_index,
+            Some(piece_dest_index),
+            Regular,
+        );
+        piece.index = piece_dest_index;
+        self.board[piece_dest_index] = Some(piece);
+
+        self.update_available_moves();
+    }
+
+
+    /// Updates self.available_moves, called at the end of every turn
+    pub(crate) fn update_available_moves(&mut self) {
+        let mut available_moves: Vec<usize> = Vec::new();
+        for tile in &self.board {
+            if let Some(piece) = tile {
+                if (piece.color == White && self.playing_as_white)
+                    || (piece.color == Black && !self.playing_as_white)
+                {
+                    available_moves.push(piece.index);
+                    available_moves.append(&mut piece::get_valid_move_indices(self, &piece));
+                }
+            }
+        }
+        self.available_moves = available_moves;
+    }
+
+    fn move_to_end_turn(
+        &mut self,
+        piece: &mut Piece,
+        piece_dest_index: usize,
+        capture_index: Option<usize>,
+        move_type: MoveType,
+    ) {
+        let captured_piece = if let Some(index) = capture_index {
+            self.board[index].take()
+        } else {
+            None
+        };
         let move_ = Move {
             piece: piece.clone(),
             piece_dest_index,
             captured_piece,
-            move_type: Regular,
+            move_type,
         };
         if self.active_turn {
             self.connection.send("opponent", &move_.to_string());
         }
         self.active_turn = !self.active_turn;
         self.move_history.push(move_);
-        piece.index = piece_dest_index;
-        self.board[piece_dest_index] = Some(piece);
     }
 
     fn game_over(&mut self, winning_color: piece::PieceColor) {

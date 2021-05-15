@@ -12,8 +12,8 @@ pub(crate) fn generate_default_board() -> Board {
         Knight,
         Rook(false),
     ];
-    // White pieces
 
+    // White pieces
     for (index, piece_type) in piece_order.iter().enumerate() {
         board[index] = Some(Piece {
             piece_type: piece_type.to_owned(),
