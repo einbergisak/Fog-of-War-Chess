@@ -24,9 +24,9 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
 
-        let state_read = STATE.get().read().unwrap().clone();
-
         while ggez::timer::check_update_time(ctx, 60) {
+            let state_read = STATE.get().read().unwrap().clone();
+
             let incoming_move = state_read.incoming_move;
             match incoming_move {
                 Some(move_) => {
@@ -36,37 +36,37 @@ impl EventHandler for Game {
                 }
                 None => {}
             }
-        }
 
-        // Check if lobbies have changed
-        if self.menu.visible || self.winner.is_some() {
-            if self.lobby_sync != state_read.lobby_sync {
-                self.menu.clear_list_items_from_list();
-                self.menu
-                    .generate_list_item_from_list(&state_read.lobbies);
-                self.lobby_sync = state_read.lobby_sync;
-            }
+            if self.menu.visible || self.winner.is_some() {
 
-            // Check if network state has updated
-            let event_validation = state_read.event_validation;
-            if event_validation.create_room {
-                self.menu.visible = false;
-                self.active_turn = true;
-                self.playing_as_white = true;
-                self.is_admin = true;
+                // Check if lobbies have changed
+                if self.lobby_sync != state_read.lobby_sync {
+                    self.menu.clear_list_items_from_list();
+                    self.menu.generate_list_item_from_list(&state_read.lobbies);
+                    self.lobby_sync = state_read.lobby_sync;
+                }
 
-                STATE.get().write().unwrap().event_validation.create_room = false;
-            } 
-            if event_validation.join_room {
-                self.menu.visible = false;
+                // Check if network state has updated
+                let event_validation = state_read.event_validation;
+                if event_validation.create_room {
+                    self.menu.visible = false;
+                    self.active_turn = true;
+                    self.playing_as_white = true;
+                    self.is_admin = true;
 
-                STATE.get().write().unwrap().event_validation.join_room = false;
-            }
-            if event_validation.play_again {
-                self.reset_game();
-                self.playing_as_white = !self.playing_as_white;
-                self.active_turn = self.playing_as_white;
-                STATE.get().write().unwrap().event_validation.play_again = false;
+                    STATE.get().write().unwrap().event_validation.create_room = false;
+                } 
+                if event_validation.join_room {
+                    self.menu.visible = false;
+
+                    STATE.get().write().unwrap().event_validation.join_room = false;
+                }
+                if event_validation.play_again {
+                    self.reset_game();
+                    self.playing_as_white = !self.playing_as_white;
+                    self.active_turn = self.playing_as_white;
+                    STATE.get().write().unwrap().event_validation.play_again = false;
+                }
             }
         }
 

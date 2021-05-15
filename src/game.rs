@@ -353,9 +353,11 @@ impl Game {
                         self.menu.visible = true;
                         self.reset_game();
                         self.connection.send("opponent_leave_lobby", "");
+                        self.connection.send("list_rooms", "");
                     }
                     id => {
                         println!("Join room: {}", id);
+                        STATE.get().write().unwrap().room_id = Some(String::from(id));
                         self.connection.send("join_room", id)
                     }
                 }

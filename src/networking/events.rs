@@ -58,6 +58,9 @@ pub(crate) fn on_join_room(payload: Payload, _: Socket) {
             println!("join room: {}", str);
             if str == "true" {
                 STATE.get().write().unwrap().event_validation.join_room = true;
+            } else {
+                // If we failed to join the lobby we remove the room id again
+                STATE.get().write().unwrap().room_id = None;
             }
         }
         Payload::Binary(_) => {}
@@ -80,6 +83,7 @@ pub(crate) fn on_create_room(payload: Payload, _: Socket) {
 pub(crate) fn on_list_room(payload: Payload, _: Socket) {
     match payload {
         Payload::String(str) => {
+            println!("Got new list rooms");
             let incoming: Vec<char> = str.chars().collect();
             let mut rooms: Vec<Room> = Vec::new();
 
