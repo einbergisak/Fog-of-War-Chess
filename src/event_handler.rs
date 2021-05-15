@@ -37,6 +37,9 @@ impl EventHandler for Game {
                 None => {}
             }
 
+            // Check if network state has updated
+            let event_validation = state_read.event_validation;
+
             if self.menu.visible || self.winner.is_some() {
 
                 // Check if lobbies have changed
@@ -46,8 +49,6 @@ impl EventHandler for Game {
                     self.lobby_sync = state_read.lobby_sync;
                 }
 
-                // Check if network state has updated
-                let event_validation = state_read.event_validation;
                 if event_validation.create_room {
                     self.menu.visible = false;
                     self.active_turn = true;
@@ -56,17 +57,53 @@ impl EventHandler for Game {
 
                     STATE.get().write().unwrap().event_validation.create_room = false;
                 } 
+
                 if event_validation.join_room {
                     self.menu.visible = false;
 
                     STATE.get().write().unwrap().event_validation.join_room = false;
                 }
+
                 if event_validation.play_again {
                     self.reset_game();
                     self.playing_as_white = !self.playing_as_white;
                     self.active_turn = self.playing_as_white;
                     STATE.get().write().unwrap().event_validation.play_again = false;
                 }
+            }
+
+            if event_validation.opponent_connect {
+                println!("Opponent connect parsed!");
+                // If the user is still in end game screen we force him into the game
+                if self.winner.is_some() {
+                    self.reset_game();
+                    self.playing_as_white = !self.playing_as_white;
+                    self.active_turn = self.playing_as_white;
+                }
+
+                let color = if self.playing_as_white {
+                    String::from("black")
+                } else {
+                    String::from("white")
+                };
+                self.connection.send("set_opponent_color", &color);
+                STATE.get().write().unwrap().event_validation.opponent_connect = false;
+            }
+            if event_validation.opponent_disconnect {
+                STATE.get().write().unwrap().event_validation.opponent_disconnect = false;
+            }
+            match event_validation.set_color {
+                Some(White) => {
+                    self.playing_as_white = true;
+                    self.active_turn = true;
+                    STATE.get().write().unwrap().event_validation.set_color = None;
+                }
+                Some(Black) => {
+                    self.playing_as_white = false;
+                    self.active_turn = false;
+                    STATE.get().write().unwrap().event_validation.set_color = None;
+                }
+                _ => {}
             }
         }
 

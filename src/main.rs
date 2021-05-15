@@ -54,7 +54,8 @@ fn main() {
             join_room: false,
             opponent_connect: false,
             opponent_disconnect: false,
-            play_again: false
+            play_again: false,
+            set_color: None
         },
         room_id: None
     };

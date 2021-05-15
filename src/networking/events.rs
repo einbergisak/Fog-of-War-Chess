@@ -1,6 +1,6 @@
 use rust_socketio::{Payload, Socket};
 
-use crate::{move_struct::Move, STATE, Room};
+use crate::{Room, STATE, move_struct::Move, piece::PieceColor};
 
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
@@ -131,6 +131,21 @@ match payload {
         Payload::String(_) => {
             println!("Received play again, changing STATE!");
             STATE.get().write().unwrap().event_validation.play_again = true;
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_set_opponent_color(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(mut str) => {
+            str = str.replace("\"", "");
+            println!("Received PING: {}", str);
+            if str == "white" {
+                STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::White);
+            } else {
+                STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::Black);
+            }
         }
         Payload::Binary(_) => {}
     }

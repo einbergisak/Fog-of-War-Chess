@@ -350,6 +350,7 @@ impl Game {
                         self.connection.send("play_again", "");
                     }
                     "goto_main_menu" if self.winner.is_some() => {
+                        STATE.get().write().unwrap().room_id = None;
                         self.menu.visible = true;
                         self.reset_game();
                         self.connection.send("opponent_leave_lobby", "");
