@@ -3,15 +3,7 @@ use ggez::{
     Context,
 };
 
-use crate::{
-    default_board_state::generate_default_board,
-    menu::{
-        clickable::{Clickable, Transform},
-        menu_state::Menu,
-    },
-    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
-    SCREEN_HEIGHT, SCREEN_WIDTH,
-};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
 
 use crate::{
     event_handler::BOARD_SIZE,
@@ -37,6 +29,8 @@ pub(crate) struct Game {
     pub(crate) lobby_sync: i32,
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
+    pub(crate) winner: Option<PieceColor>,
+    pub(crate) is_admin: bool
 }
 
 impl Game {
@@ -54,6 +48,7 @@ impl Game {
             hovered: false,
             text: String::from("Create room"),
             list_item: false,
+            group: ClickableGroup::MainMenu
         });
 
         Game {
@@ -67,6 +62,8 @@ impl Game {
             lobby_sync: 0,
             move_history: Vec::new(),
             promoting_pawn: None,
+            winner: None,
+            is_admin: false
         }
     }
 
@@ -138,18 +135,18 @@ impl Game {
         // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
             Some(Piece {
-                color: White,
+                color: PieceColor::White,
                 piece_type: King(_),
                 index: _,
             }) => {
-                self.game_over(Black);
+                self.game_over(PieceColor::Black);
             }
             Some(Piece {
-                color: Black,
+                color: PieceColor::Black,
                 piece_type: King(_),
                 index: _,
             }) => {
-                self.game_over(White);
+                self.game_over(PieceColor::White);
             }
             _ => {}
         }
@@ -171,16 +168,16 @@ impl Game {
                 let (x, y) = piece.get_pos();
 
                 // If a pawn is to move diagonally without capturing, it must be attempting en passant
-                if ((*color == White
+                if ((*color == PieceColor::White
                     && (piece_dest_index == translate_to_index(x - 1, y + 1)
                         || piece_dest_index == translate_to_index(x + 1, y + 1)))
-                    || (*color == Black
+                    || (*color == PieceColor::Black
                         && (piece_dest_index == translate_to_index(x - 1, y - 1)
                             || piece_dest_index == translate_to_index(x + 1, y - 1))))
                     && self.board[piece_dest_index].is_none()
                 {
                     // Captures the piece behind its destination tile
-                    let one_square_back = if let White = piece.color {
+                    let one_square_back = if let PieceColor::White = piece.color {
                         piece_dest_index - BOARD_SIZE
                     } else {
                         piece_dest_index + BOARD_SIZE
@@ -284,25 +281,77 @@ impl Game {
         self.board[piece_dest_index] = Some(piece);
     }
 
-    fn game_over(&mut self, winning_color: piece::PieceColor) {
+    fn game_over(&mut self, winning_color: PieceColor) {
         match winning_color {
-            White => {
+            PieceColor::White => {
+                self.winner = Some(PieceColor::White);
                 println!("Black lost, white won!");
-                todo!()
             }
-            Black => {
+            PieceColor::Black => {
+                self.winner = Some(PieceColor::Black);
                 println!("White lost, black won!");
-                todo!()
             }
         }
+
+        self.menu.clickables.push(Clickable {
+            transform: Transform {
+                x: (GAME_OVER_START_X + 100.0) as i32,
+                y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
+                width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+            },
+            id: String::from("play_again"),
+            text: String::from("Play again"),
+            list_item: false,
+            hovered: false,
+            color: Color::from(LIGHT_COLOR),
+            group: ClickableGroup::GameOverMenu
+        });
+
+        self.menu.clickables.push(Clickable {
+            transform: Transform {
+                x: (GAME_OVER_START_X + GAME_OVER_MENU_WIDTH - 100.0 - GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
+                width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+            },
+            id: String::from("goto_main_menu"),
+            text: String::from("Leave"),
+            list_item: false,
+            hovered: false,
+            color: Color::from(LIGHT_COLOR),
+            group: ClickableGroup::GameOverMenu
+        });
+
+        // Prevent the current buttons from being cliked next time
+        // a button is clicked
+        self.menu.clear_clickable_hovers();
+    }
+
+    pub(crate) fn reset_game(&mut self) {
+        self.board = generate_default_board();
+        self.winner = None;
+        self.active_turn = false;
+        self.grabbed_piece = None;
     }
 
     pub(crate) fn button_parsing(&mut self) {
         for i in 0..self.menu.clickables.len() {
             if self.menu.clickables[i].hovered {
                 match &self.menu.clickables[i].id[..] {
-                    "create_room_button" => {
+                    "create_room_button" if self.menu.visible => {
+                        println!("CLICKED THE BUTTON");
                         self.connection.send("create_room", "");
+                    }
+                    "play_again" if self.winner.is_some() => {
+                        self.reset_game();
+                        self.playing_as_white = !self.playing_as_white;
+                        self.active_turn = self.playing_as_white;
+                        self.connection.send("play_again", "");
+                    }
+                    "goto_main_menu" if self.winner.is_some() => {
+                        self.menu.visible = true;
+                        self.reset_game();
                     }
                     id => {
                         println!("Join room: {}", id);

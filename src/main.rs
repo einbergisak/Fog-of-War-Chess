@@ -26,9 +26,10 @@ mod menu {
     pub mod clickable;
     pub mod menu_state;
     pub mod menu_utilities;
+    pub mod menu_game_over;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct State {
     pub(crate) count: i32,
     pub(crate) lobbies: Vec<Room>,
@@ -53,6 +54,7 @@ fn main() {
             join_room: false,
             opponent_connect: false,
             opponent_disconnect: false,
+            play_again: false
         },
         room_id: None
     };

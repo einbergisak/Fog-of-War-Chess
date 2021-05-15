@@ -78,7 +78,6 @@ pub(crate) fn on_create_room(payload: Payload, _: Socket) {
 }
 
 pub(crate) fn on_list_room(payload: Payload, _: Socket) {
-    println!("Incoming package");
     match payload {
         Payload::String(str) => {
             let incoming: Vec<char> = str.chars().collect();
@@ -118,6 +117,16 @@ pub(crate) fn on_list_room(payload: Payload, _: Socket) {
 
             STATE.get().write().unwrap().lobbies = rooms;
             STATE.get().write().unwrap().lobby_sync += 1;
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_play_again(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(_) => {
+            println!("Received play again, changing STATE!");
+            STATE.get().write().unwrap().event_validation.play_again = true;
         }
         Payload::Binary(_) => {}
     }

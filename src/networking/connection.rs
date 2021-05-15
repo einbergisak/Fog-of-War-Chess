@@ -5,15 +5,16 @@ pub(crate) struct Networking {
     socket: Socket,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct NetworkEventValidation {
     pub(crate) create_room: bool,
     pub(crate) join_room: bool,
     pub(crate) opponent_connect: bool,
     pub(crate) opponent_disconnect: bool,
+    pub(crate) play_again: bool
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Room {
     pub(crate) id: String,
     pub(crate) members: i32,
@@ -21,7 +22,7 @@ pub(crate) struct Room {
 
 impl Networking {
     pub(crate) fn new() -> Networking {
-        let socket = SocketBuilder::new("http://chess.datasektionen.link")
+        let socket = SocketBuilder::new(/* "http://chess.datasektionen.link" */ "http://localhost:8080")
             .set_namespace("/")
             .expect("illegal namespace")
             .on("list_rooms_res", |payload, socket| {
@@ -44,6 +45,9 @@ impl Networking {
             })
             .on("list_rooms", |payload, socket| {
                 events::on_list_room(payload, socket)
+            })
+            .on("play_again", |payload, socket| {
+                events::on_play_again(payload, socket)
             })
             .on("error", |err, _| eprintln!("Error: {:#?}", err))
             .connect()

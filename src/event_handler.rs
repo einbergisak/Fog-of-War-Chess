@@ -1,6 +1,6 @@
 use ggez::{Context, GameResult, event::{EventHandler, MouseButton}, graphics::{self, DrawParam, Font, Image, Text, spritebatch::SpriteBatch}, nalgebra::Point2};
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 use ggez::{
     graphics::{DrawMode, Mesh, MeshBuilder, Rect},
@@ -23,8 +23,11 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+
+        let state_read = STATE.get().read().unwrap().clone();
+
         while ggez::timer::check_update_time(ctx, 60) {
-            let incoming_move = STATE.get().read().unwrap().incoming_move;
+            let incoming_move = state_read.incoming_move;
             match incoming_move {
                 Some(move_) => {
                     self.move_piece_from_board(move_);
@@ -36,27 +39,34 @@ impl EventHandler for Game {
         }
 
         // Check if lobbies have changed
-        if self.menu.visible {
-            if self.lobby_sync != STATE.get().read().unwrap().lobby_sync {
+        if self.menu.visible || self.winner.is_some() {
+            if self.lobby_sync != state_read.lobby_sync {
                 self.menu.clear_list_items_from_list();
                 self.menu
-                    .generate_list_item_from_list(&STATE.get().read().unwrap().lobbies);
-                self.lobby_sync = STATE.get().read().unwrap().lobby_sync;
+                    .generate_list_item_from_list(&state_read.lobbies);
+                self.lobby_sync = state_read.lobby_sync;
             }
 
             // Check if network state has updated
-            let event_validation = &STATE.get().read().unwrap().event_validation;
+            let event_validation = state_read.event_validation;
             if event_validation.create_room {
                 self.menu.visible = false;
                 self.active_turn = true;
                 self.playing_as_white = true;
-                println!("CREATE ROOM RESPONSE OK!");
+                self.is_admin = true;
 
-                //STATE.get().write().unwrap().event_validation.create_room = false;
-            } else if event_validation.join_room {
+                STATE.get().write().unwrap().event_validation.create_room = false;
+            } 
+            if event_validation.join_room {
                 self.menu.visible = false;
 
-                //STATE.get().write().unwrap().event_validation.join_room = false;
+                STATE.get().write().unwrap().event_validation.join_room = false;
+            }
+            if event_validation.play_again {
+                self.reset_game();
+                self.playing_as_white = !self.playing_as_white;
+                self.active_turn = self.playing_as_white;
+                STATE.get().write().unwrap().event_validation.play_again = false;
             }
         }
 
@@ -240,6 +250,11 @@ impl EventHandler for Game {
             graphics::draw(ctx, &promotion_piece_batch, (Point2::<f32>::new(0.0, 0.0),))?;
         }
 
+        // Draw game over menu
+        if self.winner.is_some() {
+            self.menu.render_game_over(ctx, self.winner);
+        }
+
         graphics::present(ctx)
     }
 
@@ -247,7 +262,7 @@ impl EventHandler for Game {
         match button {
             MouseButton::Left => {
                 // UI logic
-                if self.menu.visible {
+                if self.menu.visible || self.winner.is_some() {
                     self.button_parsing();
                     return;
                 }
@@ -360,7 +375,7 @@ impl EventHandler for Game {
         match button {
             MouseButton::Left => {
                 // UI logic
-                if self.menu.visible {
+                if self.menu.visible || self.winner.is_some() {
                     return;
                 }
 
@@ -445,7 +460,16 @@ impl EventHandler for Game {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
-        self.menu.on_mouse_move(ctx, x, y);
+
+        let mut active_groups: Vec<ClickableGroup> = Vec::new();
+        if self.winner.is_some() {
+            active_groups.push(ClickableGroup::GameOverMenu);
+        } else if self.menu.visible {
+            active_groups.push(ClickableGroup::MainMenu);
+            active_groups.push(ClickableGroup::MainMenuList);
+        }
+
+        self.menu.on_mouse_move(ctx, x, y, active_groups);
     }
 
     fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
