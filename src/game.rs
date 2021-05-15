@@ -352,6 +352,7 @@ impl Game {
                     "goto_main_menu" if self.winner.is_some() => {
                         self.menu.visible = true;
                         self.reset_game();
+                        self.connection.send("opponent_leave_lobby", "");
                     }
                     id => {
                         println!("Join room: {}", id);
