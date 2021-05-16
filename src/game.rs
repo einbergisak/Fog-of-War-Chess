@@ -40,6 +40,7 @@ pub(crate) struct Game {
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
     pub(crate) available_moves: Vec<usize>,
+    pub(crate) premove: Option<(Piece, usize)>, // Piece to move and destination index
 }
 
 impl Game {
@@ -72,6 +73,7 @@ impl Game {
             move_history: Vec::new(),
             promoting_pawn: None,
             available_moves: Vec::new(),
+            premove: None,
         }
     }
 
@@ -379,8 +381,19 @@ impl Game {
             }
 
             self.move_grabbed_piece(piece, piece_dest_index);
+        }
+        // If not your turn, add the move as a premove (if there isn't already one)
+        else if !self.active_turn {
+            if self.premove.is_none() && piece_dest_index != piece.index {
+                println!(
+                    "It's not your turn. Adding premove to index {} ",
+                    piece_dest_index
+                );
+                self.premove = Some((piece, piece_dest_index));
+            }
+            self.board[piece.index] = Some(piece);
         } else {
-            println!("Move to index {} is NOT valid", piece_dest_index);
+            println!("Move to index {} is NOT valid.", piece_dest_index);
             // // Reset position to source
             self.board[piece.index] = Some(piece);
         }

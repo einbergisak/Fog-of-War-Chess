@@ -31,6 +31,16 @@ impl EventHandler for Game {
                 }
                 None => {}
             }
+
+            if self.active_turn {
+                if let Some((piece, piece_dest_index)) = self.premove.take() {
+                    if let Some(piece) = self.board[piece.get_index()].take() {
+                        self.attempt_move(piece, piece_dest_index)
+                    } else {
+                        self.board[piece.get_index()] = Some(piece)
+                    }
+                }
+            }
         }
 
         // Check if lobbies have changed
@@ -185,6 +195,10 @@ impl EventHandler for Game {
                     ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
                     ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
                 } else {
+                    // Lets you cancel your premove by clicking on something that's not interactive
+                    if let Some(_) = self.premove {
+                        self.premove = None;
+                    }
                     return;
                 }
             }

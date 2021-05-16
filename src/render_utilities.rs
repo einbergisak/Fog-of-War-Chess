@@ -171,6 +171,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
             }
         }
     }
+
     // Highlights the source- and destination tile of the previous move (if the moves are visible to you)
     if let Some(m) = game.move_history.last() {
         // Source
@@ -206,6 +207,36 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
                 });
             movement_indication_batch.add(dp_dest_tile);
         }
+    }
+
+    if let Some((piece, piece_dest_index)) = game.premove {
+        let dp_source_tile = DrawParam::default()
+            .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+            .dest({
+                let (x, y) = if game.playing_as_white {
+                    flip_pos(translate_to_coords(piece.index))
+                } else {
+                    translate_to_coords(piece.index)
+                };
+                let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X;
+                let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+                Point2::new(x_pos, y_pos)
+            });
+        movement_indication_batch.add(dp_source_tile);
+
+        let dp_dest_tile = DrawParam::default()
+            .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+            .dest({
+                let (x, y) = if game.playing_as_white {
+                    flip_pos(translate_to_coords(piece_dest_index))
+                } else {
+                    translate_to_coords(piece_dest_index)
+                };
+                let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X;
+                let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+                Point2::new(x_pos, y_pos)
+            });
+        movement_indication_batch.add(dp_dest_tile);
     }
     graphics::draw(
         ctx,
