@@ -111,6 +111,8 @@ impl EventHandler for Game {
             .expect("Error drawing clickable text");
         }
 
+        render_utilities::render_movement_indication(&self, ctx)?;
+
         render_utilities::render_fog_and_pieces(&self, ctx)?;
 
         piece::promotion::render_promotion_interface(&self, ctx)?;
@@ -129,21 +131,18 @@ impl EventHandler for Game {
 
                 //------------------------------------------------------
 
-                let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
-
                 // Cursor out of bounds checking
-                if x > start_x + BOARD_WIDTH as f32
-                    || y > start_y + BOARD_WIDTH as f32
-                    || x < start_x
-                    || y < start_y
+                if x > BOARD_ORIGO_X + BOARD_WIDTH as f32
+                    || y > BOARD_ORIGO_Y + BOARD_WIDTH as f32
+                    || x < BOARD_ORIGO_X
+                    || y < BOARD_ORIGO_Y
                 {
                     println!("CLICK OUTSIDE {}", x);
                     return;
                 }
-
                 // Calculates (on screen) list index (if cursor is in bounds) of the clicked tile
-                let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
-                let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
+                let x_tile = (x - BOARD_ORIGO_X) as usize / TILE_SIZE as usize;
+                let y_tile = (y - BOARD_ORIGO_Y) as usize / TILE_SIZE as usize;
 
                 let mut index = translate_to_index(x_tile, y_tile);
                 if self.playing_as_white {

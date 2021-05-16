@@ -1,13 +1,13 @@
 use ggez::{
     graphics::{self, spritebatch::SpriteBatch, DrawMode, DrawParam, Image, MeshBuilder, Rect},
-    nalgebra::Point2,
+    nalgebra::{Point2, Vector2},
     Context, GameResult,
 };
 
 use crate::{
     event_handler::{BOARD_ORIGO_X, BOARD_ORIGO_Y, BOARD_SIZE, TILE_SIZE},
     game::Game,
-    piece::piece::get_piece_rect,
+    piece::piece::{get_piece_rect, get_valid_move_indices},
 };
 
 pub(crate) fn flip_index(index: usize) -> usize {
@@ -58,6 +58,25 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
             cursor_x - TILE_SIZE as f32 / 2.0,
             cursor_y - TILE_SIZE as f32 / 2.0,
         )));
+
+        // Renders a "ghost image" of the grabbed piece at its source location
+        let flipped_index = if game.playing_as_white {
+            flip_index(piece.get_index())
+        } else {
+            piece.get_index()
+        };
+
+        let rel_x = (flipped_index % BOARD_SIZE) as f32;
+        let rel_y = (flipped_index / BOARD_SIZE) as f32;
+        let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
+        let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+        let rect = get_piece_rect(piece);
+        let param = DrawParam::default()
+            .src(rect)
+            .dest(Point2::new(abs_x, abs_y))
+            .color(graphics::Color::from_rgba(100, 100, 100, 100));
+
+        piece_batch.add(param);
     } else {
         grabbed_index = None;
         grabbed_param = None;
@@ -79,14 +98,14 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
         let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
 
         if let Some(i) = &grabbed_index {
-            if index == *i {
-                let rect = Rect::new(abs_x, abs_y, TILE_SIZE as f32, TILE_SIZE as f32);
-                hidden_tiles.rectangle(
-                    DrawMode::fill(),
-                    rect,
-                    graphics::Color::from_rgba(30, 30, 30, 240),
-                );
-                continue;
+            if game.playing_as_white {
+                if index == flip_index(*i) {
+                    continue;
+                }
+            } else {
+                if index == *i {
+                    continue;
+                }
             }
         }
         // Only draw the tiles which are in your vision
@@ -111,6 +130,27 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
         }
     }
 
+    // Adds the selected piece (if there is one) to the sprite batch
+    if let Some(piece) = &game.selected_piece {
+        let flipped_index = if game.playing_as_white {
+            flip_index(piece.index)
+        } else {
+            piece.index
+        };
+
+        let rel_x = (flipped_index % BOARD_SIZE) as f32;
+        let rel_y = (flipped_index / BOARD_SIZE) as f32;
+        let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
+        let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+
+        let rect = get_piece_rect(piece);
+        let param = DrawParam::default()
+            .src(rect)
+            .dest(Point2::new(abs_x, abs_y));
+
+        piece_batch.add(param);
+    }
+
     // Draw hidden tiles (aka "fog")
     let hidden_tiles_mesh = hidden_tiles.build(ctx)?;
     graphics::draw(ctx, &hidden_tiles_mesh, (Point2::<f32>::new(0.0, 0.0),))?;
@@ -121,4 +161,76 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
 
     // Draw pieces
     graphics::draw(ctx, &piece_batch, (Point2::<f32>::new(0.0, 0.0),))
+}
+
+/// Renders highlighting for your available moves and for the prievious move (if it was visible to you)
+pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> GameResult<()> {
+    let mut movement_indication_batch = SpriteBatch::new(Image::new(ctx, "/markers.png")?);
+    for piece in [game.grabbed_piece, game.selected_piece].iter() {
+        if let Some(piece) = piece {
+            // Adds movement indication dots and highlighting
+            for index in get_valid_move_indices(game, piece) {
+                let mut dp = DrawParam::default().offset(Point2::new(0.5, 0.5)).dest({
+                    let (x, y) = if game.playing_as_white {
+                        flip_pos(translate_to_coords(index))
+                    } else {
+                        translate_to_coords(index)
+                    };
+                    let x_pos =
+                        x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X + (TILE_SIZE / 2) as f32;
+                    let y_pos =
+                        y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y + (TILE_SIZE / 2) as f32;
+                    Point2::new(x_pos, y_pos)
+                });
+                if game.board[index].is_some() {
+                    dp.src = Rect::new(1.0 / 4.0, 0.0, 1.0 / 4.0, 1.0)
+                } else {
+                    dp = dp.scale(Vector2::new(0.3, 0.3));
+                    dp.src = Rect::new(0.0 / 4.0, 0.0, 1.0 / 4.0, 1.0)
+                }
+                movement_indication_batch.add(dp);
+            }
+        }
+    }
+    // Highlights the source- and destination tile of the previous move (if the moves are visible to you)
+    if let Some(m) = game.move_history.last() {
+        // Source
+        if game.available_moves.contains(&m.piece.index) {
+            let dp_source_tile = DrawParam::default()
+                .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+                .dest({
+                    let (x, y) = if game.playing_as_white {
+                        flip_pos(translate_to_coords(m.piece.index))
+                    } else {
+                        translate_to_coords(m.piece.index)
+                    };
+                    let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X;
+                    let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+                    Point2::new(x_pos, y_pos)
+                });
+            movement_indication_batch.add(dp_source_tile);
+        }
+
+        // Destination
+        if game.available_moves.contains(&m.piece_dest_index) {
+            let dp_dest_tile = DrawParam::default()
+                .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+                .dest({
+                    let (x, y) = if game.playing_as_white {
+                        flip_pos(translate_to_coords(m.piece_dest_index))
+                    } else {
+                        translate_to_coords(m.piece_dest_index)
+                    };
+                    let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X;
+                    let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+                    Point2::new(x_pos, y_pos)
+                });
+            movement_indication_batch.add(dp_dest_tile);
+        }
+    }
+    graphics::draw(
+        ctx,
+        &movement_indication_batch,
+        (Point2::<f32>::new(0.0, 0.0),),
+    )
 }
