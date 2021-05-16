@@ -15,8 +15,12 @@ mod default_board_state;
 mod event_handler;
 mod game;
 mod move_struct;
-mod piece;
-mod piece_movement;
+mod piece {
+    pub mod piece;
+    pub mod piece_movement;
+    pub mod promotion;
+}
+
 mod render_utilities;
 mod networking {
     pub mod connection;

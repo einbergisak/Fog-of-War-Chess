@@ -2,10 +2,12 @@ use ggez::graphics::Rect;
 
 use crate::{
     game::Game,
-    piece::PieceType::*,
-    piece_movement::{
-        bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
-        rook_valid_moves,
+    piece::{
+        piece::PieceType::*,
+        piece_movement::{
+            bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
+            rook_valid_moves,
+        },
     },
     render_utilities::translate_to_coords,
 };

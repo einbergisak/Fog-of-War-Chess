@@ -1,7 +1,7 @@
 use std::iter::FromIterator;
 
 use self::MoveType::*;
-use crate::piece::{
+use crate::piece::piece::{
     self, Piece,
     PieceType::{self, *},
 };

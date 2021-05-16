@@ -1,4 +1,4 @@
-use crate::piece::{Board, Piece, PieceColor::*, PieceType::*};
+use crate::piece::piece::{Board, Piece, PieceColor::*, PieceType::*};
 
 pub(crate) fn generate_default_board() -> Board {
     let mut board = vec![None; 64];

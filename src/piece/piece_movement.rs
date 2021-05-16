@@ -1,7 +1,7 @@
 use crate::{
     event_handler::BOARD_SIZE,
     move_struct::Move,
-    piece::{Board, Piece, PieceColor::*, PieceType::*},
+    piece::piece::{Board, Piece, PieceColor::*, PieceType::*},
     render_utilities::translate_to_index,
 };
 

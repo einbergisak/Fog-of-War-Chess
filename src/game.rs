@@ -10,7 +10,7 @@ use crate::{
         menu_state::Menu,
     },
     move_struct::MoveType,
-    piece::{self, Board, Piece, PieceColor::*, PieceType::*},
+    piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*},
     SCREEN_HEIGHT, SCREEN_WIDTH,
 };
 
@@ -273,7 +273,6 @@ impl Game {
 
         self.update_available_moves();
     }
-
 
     /// Updates self.available_moves, called at the end of every turn
     pub(crate) fn update_available_moves(&mut self) {
