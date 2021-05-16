@@ -15,10 +15,10 @@ pub(crate) fn flip_index(index: usize) -> usize {
     return list_size - index - 1;
 }
 
-pub(crate) fn flip_pos(pos: (usize, usize)) -> (usize, usize){
+pub(crate) fn flip_pos(pos: (usize, usize)) -> (usize, usize) {
     let x = BOARD_SIZE - 1 - pos.0;
     let y = BOARD_SIZE - 1 - pos.1;
-    return (x, y)
+    return (x, y);
 }
 
 /// Translates from game coordinates to list index
@@ -42,9 +42,9 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
 
     // Renders the grabbed piece
     if let Some(piece) = &game.grabbed_piece {
-        let (x, y) = if game.playing_as_white{
+        let (x, y) = if game.playing_as_white {
             flip_pos(piece.get_pos())
-        } else{
+        } else {
             piece.get_pos()
         };
         grabbed_index = Some(translate_to_index(x.clone(), y.clone()));

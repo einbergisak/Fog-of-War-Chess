@@ -345,4 +345,36 @@ impl Game {
             }
         }
     }
+
+    pub(crate) fn attempt_move(&mut self, piece: Piece, piece_dest_index: usize) {
+        let valid_moves = piece::get_valid_move_indices(self, &piece);
+        println!("Current turn: {}", self.active_turn);
+        println!("Valid moves: {:?}", valid_moves);
+        if valid_moves.contains(&piece_dest_index) && self.active_turn {
+            println!("Move to index {} is valid", piece_dest_index);
+
+            // Promotion
+            println!("Moving piece: {:?}", &piece);
+            if piece.piece_type == Pawn(true)
+                && ((piece.color == White
+                    && translate_to_coords(piece_dest_index).1 == BOARD_SIZE - 1)
+                    || (piece.color == Black && translate_to_coords(piece_dest_index).1 == 0))
+            {
+                println!("Noticed pawn promotion");
+                self.promoting_pawn = Some(Move {
+                    piece,
+                    piece_dest_index,
+                    captured_piece: None, // It is assigned an eventual captured piece when the promotion has been confirmed (mouse button down event)
+                    move_type: Promotion(King(true)), // Default invalid value that is later changed when the player has selected which piece to promote into.
+                });
+                return;
+            }
+
+            self.move_grabbed_piece(piece, piece_dest_index);
+        } else {
+            println!("Move to index {} is NOT valid", piece_dest_index);
+            // // Reset position to source
+            self.board[piece.index] = Some(piece);
+        }
+    }
 }

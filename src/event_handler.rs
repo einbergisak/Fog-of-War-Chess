@@ -5,15 +5,11 @@ use ggez::{
     Context, GameResult,
 };
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::{
-        self,
-        piece::{get_valid_move_indices},
-    }, render_utilities::{self, flip_index, flip_pos, translate_to_index}};
-
 use crate::{
-    move_struct::{Move, MoveType::*},
-    piece::piece::{PieceColor::*, PieceType::*},
-    render_utilities::translate_to_coords,
+    game::{BACKGROUND_COLOR, LIGHT_COLOR},
+    piece::{self, piece::PieceColor},
+    render_utilities::{self, flip_index, translate_to_index},
+    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
 };
 
 pub(crate) const BOARD_SIZE: usize = 8;
@@ -157,14 +153,25 @@ impl EventHandler for Game {
                 // Pawn promotion interface
                 piece::promotion::check_promotion(self, x_tile, y_tile);
 
-                // Attempts to grab a piece from the given tile
-                if let Some(piece) = self.board[index].take() {
+                // If a piece has been selected by clicking, try to move to the clicked tile
+                if let Some(piece) = self.selected_piece {
+                    let mut piece_dest_index = translate_to_index(x_tile, y_tile);
+
+                    if self.playing_as_white {
+                        piece_dest_index = flip_index(piece_dest_index);
+                    }
+
+                    self.attempt_move(piece, piece_dest_index);
+                    self.selected_piece = None;
+                }
+                // Otherwise, attempt to grab a piece from the clicked tile
+                else if let Some(piece) = self.board[index].take() {
                     match &piece.color {
-                        crate::piece::piece::PieceColor::White if !self.playing_as_white => {
+                        PieceColor::White if !self.playing_as_white => {
                             self.board[index] = Some(piece);
                             return;
                         }
-                        crate::piece::piece::PieceColor::Black if self.playing_as_white => {
+                        PieceColor::Black if self.playing_as_white => {
                             self.board[index] = Some(piece);
                             return;
                         }
@@ -200,79 +207,45 @@ impl EventHandler for Game {
 
                 ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
-                if let Some(piece) = self.grabbed_piece.take()
-                {
-                    let (source_x, source_y) = if self.playing_as_white{
-                        flip_pos(piece.get_pos())
-                    }else{
-                        piece.get_pos()
-                    };
-
+                if let Some(piece) = self.grabbed_piece.take() {
                     let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
 
-                // Calculates list index (if in bounds) of the clicked tile
-                let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
-                let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
+                    // Calculates list index (if in bounds) of the clicked tile
+                    let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
+                    let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
 
-                let mut piece_source_index =
-                    translate_to_index(source_x as usize, source_y as usize);
-                let mut piece_dest_index = translate_to_index(x_tile, y_tile);
+                    let piece_source_index = piece.index;
+                    let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
-                if self.playing_as_white {
-                    piece_dest_index = flip_index(piece_dest_index);
-                    piece_source_index = flip_index(piece_source_index);
-                }
+                    if self.playing_as_white {
+                        piece_dest_index = flip_index(piece_dest_index);
+                    }
 
-                // Out of bounds checking
-                if x - start_x > BOARD_WIDTH as f32
-                    || y - start_y > BOARD_WIDTH as f32
-                    || x < start_x
-                    || y < start_y
-                {
-                    // If we are out of bounds then we place the piece
-                    // at its original position
-
-                    // Board index for the piece which the cursor is on
-                    self.board[piece_source_index] = Some(piece);
-                    println!("Out of bounds");
-                    return;
-                }
-
-                let valid_moves = get_valid_move_indices(self, &piece);
-                println!("Current turn: {}", self.active_turn);
-                println!("Valid moves: {:?}", valid_moves);
-                if valid_moves.contains(&piece_dest_index) && self.active_turn {
-                    println!("Move to index {} is valid", piece_dest_index);
-
-                    // Promotion
-                    println!("Moving piece: {:?}", &piece);
-                    if piece.piece_type == Pawn(true)
-                        && ((piece.color == White
-                            && translate_to_coords(piece_dest_index).1 == BOARD_SIZE - 1)
-                            || (piece.color == Black
-                                && translate_to_coords(piece_dest_index).1 == 0))
-                    {
-                        println!("Noticed pawn promotion");
-                        self.promoting_pawn = Some(Move {
-                            piece,
-                            piece_dest_index,
-                            captured_piece: None, // It is assigned an eventual captured piece when the promotion has been confirmed (mouse button down event)
-                            move_type: Promotion(King(true)), // Default invalid value that is later changed when the player has selected which piece to promote into.
-                        });
+                    // If the cursor is released on the same tile as it was grabbed on, go into "click & select" mode instead of "drag & drop" mode
+                    if piece_dest_index == piece_source_index {
+                        self.selected_piece = Some(piece);
                         return;
                     }
 
-                    self.move_grabbed_piece(piece, piece_dest_index);
-                } else {
-                    println!("Move to index {} is NOT valid", piece_dest_index);
-                    // // Reset position to source
-                    self.board[piece_source_index] = Some(piece);
-                }
+                    // Out of bounds checking
+                    if x - start_x > BOARD_WIDTH as f32
+                        || y - start_y > BOARD_WIDTH as f32
+                        || x < start_x
+                        || y < start_y
+                    {
+                        // If we are out of bounds then we place the piece
+                        // at its original position
+
+                        // Board index for the piece which the cursor is on
+                        self.board[piece_source_index] = Some(piece);
+                        println!("Out of bounds");
+                        return;
+                    }
+
+                    self.attempt_move(piece, piece_dest_index);
                 } else {
                     return;
                 }
-
-
             }
             _ => {}
         }
