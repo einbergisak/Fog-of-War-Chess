@@ -29,7 +29,8 @@ pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
 // Main struct
 pub(crate) struct Game {
     pub(crate) board: Board,
-    pub(crate) grabbed_piece: Option<(Piece, (usize, usize))>,
+    pub(crate) grabbed_piece: Option<Piece>,
+    pub(crate) selected_piece: Option<Piece>,
     pub(crate) playing_as_white: bool,
     pub(crate) board_mesh: Mesh,
     pub(crate) active_turn: bool,
@@ -61,6 +62,7 @@ impl Game {
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
             grabbed_piece: None,
+            selected_piece: None,
             playing_as_white: false,
             board_mesh: Game::get_board_mesh(ctx),
             active_turn: false,

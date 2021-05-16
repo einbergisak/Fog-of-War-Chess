@@ -5,15 +5,10 @@ use ggez::{
     Context, GameResult,
 };
 
-use crate::{
-    game::{BACKGROUND_COLOR, LIGHT_COLOR},
-    piece::{
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::{
         self,
-        piece::{get_valid_move_indices, Piece},
-    },
-    render_utilities::{self, flip_index, translate_to_index},
-    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
-};
+        piece::{get_valid_move_indices},
+    }, render_utilities::{self, flip_index, flip_pos, translate_to_index}};
 
 use crate::{
     move_struct::{Move, MoveType::*},
@@ -175,9 +170,7 @@ impl EventHandler for Game {
                         }
                         _ => {}
                     }
-                    self.grabbed_piece = Some((piece, (x_tile, y_tile)));
-
-                    println!("Grabbed piece at ({}, {})", x_tile, y_tile);
+                    self.grabbed_piece = Some(piece);
                     // Lock the cursor inside the application
                     ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
                     ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
@@ -207,19 +200,15 @@ impl EventHandler for Game {
 
                 ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
-
-                let piece: Piece;
-                let source_x;
-                let source_y;
-                if let Some((internal_piece, (internal_x, internal_y))) = self.grabbed_piece.take()
+                if let Some(piece) = self.grabbed_piece.take()
                 {
-                    piece = internal_piece;
-                    source_x = internal_x as f32;
-                    source_y = internal_y as f32;
-                } else {
-                    return;
-                }
-                let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
+                    let (source_x, source_y) = if self.playing_as_white{
+                        flip_pos(piece.get_pos())
+                    }else{
+                        piece.get_pos()
+                    };
+
+                    let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
 
                 // Calculates list index (if in bounds) of the clicked tile
                 let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
@@ -279,6 +268,11 @@ impl EventHandler for Game {
                     // // Reset position to source
                     self.board[piece_source_index] = Some(piece);
                 }
+                } else {
+                    return;
+                }
+
+
             }
             _ => {}
         }
