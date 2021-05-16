@@ -58,8 +58,15 @@ pub(crate) fn check_promotion(game: &mut Game, x_tile: usize, y_tile: usize) {
             };
             game.move_history.push(move_);
             game.connection.send("opponent", &move_.to_string());
+            game.grabbed_piece = None;
+            game.selected_piece = None;
+            println!(
+                "Grabbed: {:?}, {:?}",
+                game.grabbed_piece, game.selected_piece
+            );
             // Your turn is over once you've made a move
             game.active_turn = !game.active_turn;
+            game.update_available_moves();
         }
         // If clicking outside the promotion interface: return the pawn to its source position.
         else {

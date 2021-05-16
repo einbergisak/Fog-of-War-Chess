@@ -153,25 +153,29 @@ impl EventHandler for Game {
                 piece::promotion::check_promotion(self, x_tile, y_tile);
 
                 // If a piece has been selected by clicking, try to move to the clicked tile
-                if let Some(piece) = self.selected_piece {
+                if let Some(piece) = self.selected_piece.take() {
                     let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
                     if self.playing_as_white {
                         piece_dest_index = flip_index(piece_dest_index);
                     }
 
-                    self.attempt_move(piece, piece_dest_index);
-                    self.selected_piece = None;
+                    if let Some(piece) = self.board[piece.get_index()].take() {
+                        self.attempt_move(piece, piece_dest_index);
+                    }
+
+                    // Prevents attempting to grab a piece which has just been unselected
+                    if piece.index == index {
+                        return;
+                    }
                 }
-                // Otherwise, attempt to grab a piece from the clicked tile
-                else if let Some(piece) = self.board[index].take() {
+                // Attempt to grab a piece from the clicked tile
+                if let Some(piece) = self.board[index].clone().take() {
                     match &piece.color {
                         PieceColor::White if !self.playing_as_white => {
-                            self.board[index] = Some(piece);
                             return;
                         }
                         PieceColor::Black if self.playing_as_white => {
-                            self.board[index] = Some(piece);
                             return;
                         }
                         _ => {}
@@ -232,16 +236,13 @@ impl EventHandler for Game {
                         || x < start_x
                         || y < start_y
                     {
-                        // If we are out of bounds then we place the piece
-                        // at its original position
-
-                        // Board index for the piece which the cursor is on
-                        self.board[piece_source_index] = Some(piece);
+                        // If we are out of bounds then the grab is cancelled
                         println!("Out of bounds");
                         return;
                     }
-
-                    self.attempt_move(piece, piece_dest_index);
+                    if let Some(piece) = self.board[piece.get_index()].take() {
+                        self.attempt_move(piece, piece_dest_index);
+                    }
                 } else {
                     return;
                 }

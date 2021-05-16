@@ -130,27 +130,6 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
         }
     }
 
-    // Adds the selected piece (if there is one) to the sprite batch
-    if let Some(piece) = &game.selected_piece {
-        let flipped_index = if game.playing_as_white {
-            flip_index(piece.index)
-        } else {
-            piece.index
-        };
-
-        let rel_x = (flipped_index % BOARD_SIZE) as f32;
-        let rel_y = (flipped_index / BOARD_SIZE) as f32;
-        let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
-        let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
-
-        let rect = get_piece_rect(piece);
-        let param = DrawParam::default()
-            .src(rect)
-            .dest(Point2::new(abs_x, abs_y));
-
-        piece_batch.add(param);
-    }
-
     // Draw hidden tiles (aka "fog")
     let hidden_tiles_mesh = hidden_tiles.build(ctx)?;
     graphics::draw(ctx, &hidden_tiles_mesh, (Point2::<f32>::new(0.0, 0.0),))?;

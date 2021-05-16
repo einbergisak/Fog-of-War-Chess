@@ -242,6 +242,7 @@ impl Game {
                     rook.index = (piece_source_index as i32 + direction) as usize;
                     self.board[two_steps_towards_rook] = Some(piece);
                     self.board[(piece_source_index as i32 + direction) as usize] = Some(rook);
+                    self.update_available_moves();
                 };
 
                 // If attempting to castle kingside
@@ -254,10 +255,10 @@ impl Game {
                 else if piece_dest_index == two_steps_queenside
                     || piece_dest_index == rook_queenside
                 {
+                    println!("Castling queenside");
                     castle(rook_queenside);
                     return;
                 }
-                self.update_available_moves();
             }
             _ => {}
         }
@@ -312,6 +313,13 @@ impl Game {
         };
         if self.active_turn {
             self.connection.send("opponent", &move_.to_string());
+            self.grabbed_piece = None;
+            self.selected_piece = None;
+
+            println!(
+                "Grabbed: {:?}, {:?}",
+                self.grabbed_piece, self.selected_piece
+            );
         }
         self.active_turn = !self.active_turn;
         self.move_history.push(move_);
