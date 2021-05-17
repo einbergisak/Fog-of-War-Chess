@@ -39,9 +39,8 @@ impl Menu {
             None => {}
         }
 
-        let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
         let scale = 50.0;
-        text.set_font(font, graphics::Scale::uniform(scale));
+        text.set_font(self.font, graphics::Scale::uniform(scale));
         text.set_bounds(Point2::new(SCREEN_WIDTH * 0.4, 50.0), graphics::Align::Center);
 
         graphics::draw(

@@ -25,10 +25,11 @@ pub(crate) struct Menu {
     pub(crate) clickables: Vec<Clickable>,
     pub(crate) list: List,
     last_iteration_hover: bool,
+    pub(crate) font: Font
 }
 
 impl Menu {
-    pub(crate) fn new() -> Menu {
+    pub(crate) fn new(ctx: &mut Context) -> Menu {
         Menu {
             visible: true,
             clickables: Vec::new(),
@@ -43,6 +44,7 @@ impl Menu {
                 scroll: 0.0,
                 hovered: false,
             },
+            font: Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font")
         }
     }
 
@@ -78,7 +80,7 @@ impl Menu {
             }
         }
         self.last_iteration_hover = is_hovering;
-        
+
         if selected_groups.contains(&ClickableGroup::MainMenuList) {
             // Check if mouse is hovering over list
             self.list.hovered = false;
@@ -125,7 +127,7 @@ impl Menu {
 
         if let Ok(sprite) = graphics::Image::new(ctx, "/logo.png") {
             sprite.draw(
-                ctx, 
+                ctx,
                 graphics::DrawParam::default()
                 .dest(Point2::new(SCREEN_WIDTH / 4.0 - 1000.0 * 0.15 / 2.0, 100.0))
                 .scale(Vector2::new(0.15, 0.15))
@@ -200,7 +202,7 @@ impl Menu {
             Err(_) => {}
         }
 
-        let low_overlapper = graphics::Mesh::new_rectangle(
+        match graphics::Mesh::new_rectangle(
             ctx,
             graphics::DrawMode::fill(),
             graphics::Rect::new(
@@ -210,8 +212,7 @@ impl Menu {
                 (SCREEN_HEIGHT - LIST_HEIGHT) / 2.0,
             ),
             graphics::Color::from(BACKGROUND_COLOR),
-        );
-        match low_overlapper {
+        ) {
             Ok(overlapper) => {
                 graphics::draw(ctx, &overlapper, graphics::DrawParam::default())
                     .expect("Draw error");
@@ -219,28 +220,24 @@ impl Menu {
             Err(_) => {}
         }
 
-        let mut text = Text::new("Open lobbies");
-            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
-            let scale = SCREEN_HEIGHT * 0.08;
-            text.set_font(font, graphics::Scale::uniform(scale));
+        self.draw_text(
+            ctx,
+            String::from("Open lobbies"),
+            (
+                LIST_START_X,
+                SCREEN_HEIGHT * 0.01
+            ),
+            (
+                LIST_WIDTH,
+                SCREEN_HEIGHT * 0.08
+            ),
+            graphics::Color::from(LIGHT_COLOR),
+        graphics::Align::Center
+        );
 
-            text.set_bounds(Point2::new(LIST_WIDTH, SCREEN_HEIGHT * 0.09), graphics::Align::Center);
-
-            graphics::draw(
-                ctx,
-                &text,
-                graphics::DrawParam::default()
-                    .dest(Point2::<f32>::new(
-                        LIST_START_X,
-                        SCREEN_HEIGHT * 0.01
-                    ))
-                    .color(graphics::Color::from(LIGHT_COLOR))
-            ).expect("Error drawing clickable text");
-
-        let mut text = Text::new("A game create by Isak Einberg & Hampus Hallkvist");
-        let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
+        let mut text = Text::new("A game created by Isak Einberg & Hampus Hallkvist");
         let scale = 20.0;
-        text.set_font(font, graphics::Scale::uniform(scale));
+        text.set_font(self.font, graphics::Scale::uniform(scale));
 
         graphics::draw(
             ctx,

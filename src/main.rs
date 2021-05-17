@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use game::Game;
-use ggez::event::{self};
+use ggez::event;
 use ggez::{
     conf,
     graphics::{self, Rect},

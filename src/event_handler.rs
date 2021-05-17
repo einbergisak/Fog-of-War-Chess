@@ -1,6 +1,6 @@
 use ggez::{Context, GameResult, event::{EventHandler, KeyCode, KeyMods, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::Point2};
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, enter_name_screen::{on_key_down, render_name_interface}, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::{clickable::ClickableGroup, menu_state::Menu}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, enter_name_screen::on_key_down, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::{clickable::ClickableGroup, menu_state::Menu}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 
 use ggez::{
     graphics::{DrawMode, Mesh, MeshBuilder, Rect},
@@ -56,7 +56,7 @@ impl EventHandler for Game {
                     self.is_admin = true;
 
                     STATE.get().write().unwrap().event_validation.create_room = false;
-                } 
+                }
 
                 if event_validation.join_room {
                     self.menu.visible = false;
@@ -142,7 +142,7 @@ impl EventHandler for Game {
         }
 
         if read_state.entering_name {
-            render_name_interface(ctx);
+            self.menu.render_name_interface(ctx);
             self.menu.draw_clickables(ctx, vec![ClickableGroup::EnterName]);
             return graphics::present(ctx);
         }
@@ -162,17 +162,17 @@ impl EventHandler for Game {
 
         // Draw room code
         if let Some(id) = &read_state.room_id {
-            Menu::draw_text(
-                ctx, 
-                format!("Room code: {}", id.clone().replace("\"", "")), 
+            self.menu.draw_text(
+                ctx,
+                format!("Room code: {}", id.clone().replace("\"", "")),
                 (
                     BOARD_ORIGO_X,
                     50.0 / 2.0 - 40.0 / 2.0
-                ), 
+                ),
                 (
-                    BOARD_WIDTH as f32, 
+                    BOARD_WIDTH as f32,
                     40.0
-                ), 
+                ),
                 graphics::Color::from(LIGHT_COLOR),
                 graphics::Align::Right
             );
@@ -310,52 +310,52 @@ impl EventHandler for Game {
         // Draw opponent name
         let opponent_name = read_state.event_validation.opponent_name.clone();
         if let Some(name) = opponent_name {
-            Menu::draw_text(
-                ctx, 
+            self.menu.draw_text(
+                ctx,
                 name,
                 (
                     BOARD_ORIGO_X,
                     50.0 / 2.0 - 40.0 / 2.0
-                ), 
+                ),
                 (
                     BOARD_WIDTH as f32,
                     40.0  // Same height as the room code text
-                ), 
+                ),
                 graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left 
+                graphics::Align::Left
             );
         } else {
-            Menu::draw_text(
-                ctx, 
+            self.menu.draw_text(
+                ctx,
                 String::from("Awaiting player..."),
                 (
                     BOARD_ORIGO_X,
                     50.0 / 2.0 - 40.0 / 2.0
-                ), 
+                ),
                 (
                     BOARD_WIDTH as f32,
                     40.0  // Same height as the room code text
-                ), 
+                ),
                 graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left 
+                graphics::Align::Left
             );
         }
 
         // Draw name
         let name = read_state.name.clone();
-        Menu::draw_text(
-            ctx, 
+        self.menu.draw_text(
+            ctx,
             name,
             (
                 BOARD_ORIGO_X,
                 SCREEN_HEIGHT - 50.0 / 2.0 - 40.0 / 2.0
-            ), 
+            ),
             (
                 BOARD_WIDTH as f32,
                 40.0  // Same height as the room code text
-            ), 
+            ),
             graphics::Color::from(LIGHT_COLOR),
-            graphics::Align::Left 
+            graphics::Align::Left
         );
 
         self.menu.draw_clickables(ctx, vec![ClickableGroup::InGame]);
@@ -600,7 +600,7 @@ impl EventHandler for Game {
         else if self.menu.visible {
             active_groups.push(ClickableGroup::MainMenu);
             active_groups.push(ClickableGroup::MainMenuList);
-        } 
+        }
         else { // In game
             active_groups.push(ClickableGroup::InGame);
         }

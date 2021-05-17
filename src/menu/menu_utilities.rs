@@ -161,9 +161,8 @@ impl Menu {
             }
 
             let mut text = Text::new(clickable.text.clone());
-            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
             let scale = f32::min(clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32, clickable.transform.height as f32 * 0.8);
-            text.set_font(font, graphics::Scale::uniform(scale));
+            text.set_font(self.font, graphics::Scale::uniform(scale));
 
             text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
 
@@ -182,12 +181,11 @@ impl Menu {
         }
     }
 
-    pub(crate) fn draw_text(ctx: &mut Context, text: String, position: (f32, f32), size: (f32, f32), color: graphics::Color, alignment: graphics::Align) {
+    pub(crate) fn draw_text(&mut self, ctx: &mut Context, text: String, position: (f32, f32), size: (f32, f32), color: graphics::Color, alignment: graphics::Align) {
         // Draw player name
         let mut text = Text::new(text);
-        let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
         let scale = size.1;
-        text.set_font(font, graphics::Scale::uniform(scale));
+        text.set_font(self.font, graphics::Scale::uniform(scale));
 
         text.set_bounds(Point2::new(size.0, size.1), alignment);
 

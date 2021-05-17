@@ -1,7 +1,4 @@
-use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
-    Context,
-};
+use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect}};
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, event_handler::BOARD_WIDTH, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
 
@@ -36,7 +33,7 @@ pub(crate) struct Game {
 
 impl Game {
     pub(crate) fn new(ctx: &mut Context) -> Game {
-        let mut menu = Menu::new();
+        let mut menu = Menu::new(ctx);
         // Create button for main menu
         menu.clickables.push(Clickable {
             id: String::from("create_room_button"),
@@ -54,7 +51,7 @@ impl Game {
         });
 
         let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
-        
+
         // Resign button for in game
         menu.clickables.push(Clickable {
             id: String::from("resign_game_button"),
@@ -374,11 +371,11 @@ impl Game {
     #[allow(unused_assignments)]
     pub(crate) fn button_parsing(&mut self, allowed_group: Vec<ClickableGroup>) {
         let read_state = STATE.get().read().unwrap().clone();
-        
+
         for mut i in 0..self.menu.clickables.len() {
-            
+
             if self.menu.clickables[i].hovered && allowed_group.contains(&self.menu.clickables[i].group) {
-                
+
                 match &self.menu.clickables[i].id[..] {
                     "create_room_button" => {
                         self.connection.send("create_room", "");
@@ -409,7 +406,7 @@ impl Game {
                             // Delete the button after it has been used
                             let index = self.menu.clickables.iter().position(|current| current.id == String::from("submit_name_button")).unwrap();
                             self.menu.clickables.remove(index);
-                            
+
                             i -= 1;
                         }
                     }
