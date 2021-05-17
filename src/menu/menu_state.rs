@@ -1,9 +1,9 @@
 use super::{
     clickable::{Clickable, Transform},
-    menu_utilities::{apply_scroll, is_within_boundary},
+    menu_utilities::is_within_boundary,
 };
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR}};
-use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup};
+use ggez::{Context, graphics::{self, Drawable, Font, Text}, nalgebra::{Point2, Vector2}};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
 pub(crate) const LIST_HEIGHT: f32 = SCREEN_HEIGHT as f32 * 0.8;
@@ -16,19 +16,20 @@ pub(crate) const LIST_ITEM_MARGIN: f32 = 20.0;
 pub(crate) const LIST_CHIN_HEIGHT: f32 = 50.0;
 
 pub(crate) struct List {
-    transform: Transform,
-    scroll: f32,
-    hovered: bool,
+    pub(crate) transform: Transform,
+    pub(crate) scroll: f32,
+    pub(crate) hovered: bool,
 }
 pub(crate) struct Menu {
     pub(crate) visible: bool,
     pub(crate) clickables: Vec<Clickable>,
     pub(crate) list: List,
     last_iteration_hover: bool,
+    pub(crate) font: Font
 }
 
 impl Menu {
-    pub(crate) fn new() -> Menu {
+    pub(crate) fn new(ctx: &mut Context) -> Menu {
         Menu {
             visible: true,
             clickables: Vec::new(),
@@ -43,20 +44,28 @@ impl Menu {
                 scroll: 0.0,
                 hovered: false,
             },
+            font: Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font")
         }
     }
 
-    pub(crate) fn on_mouse_move(&mut self, ctx: &mut Context, x: f32, y: f32) {
+    pub(crate) fn on_mouse_move(&mut self, ctx: &mut Context, x: f32, y: f32, selected_groups: Vec<ClickableGroup>) {
         let mut is_hovering = false;
-        for i in 0..self.clickables.len() {
+        for clickable in &mut self.clickables {
+
+            // If the selected button isn't in the selection group
+            // we ignore it
+            if !selected_groups.contains(&clickable.group) {
+                continue;
+            }
+
             let result = is_within_boundary(
-                &self.clickables[i].transform,
-                self.clickables[i].list_item,
+                &clickable.transform,
+                clickable.list_item,
                 x,
                 y,
                 self.list.scroll,
             );
-            self.clickables[i].hovered = result;
+            clickable.hovered = result;
             if result {
                 is_hovering = true;
             }
@@ -72,10 +81,12 @@ impl Menu {
         }
         self.last_iteration_hover = is_hovering;
 
-        // Check if mouse is hovering over list
-        self.list.hovered = false;
-        if is_within_boundary(&self.list.transform, false, x, y, self.list.scroll) {
-            self.list.hovered = true;
+        if selected_groups.contains(&ClickableGroup::MainMenuList) {
+            // Check if mouse is hovering over list
+            self.list.hovered = false;
+            if is_within_boundary(&self.list.transform, false, x, y, self.list.scroll) {
+                self.list.hovered = true;
+            }
         }
     }
 
@@ -113,6 +124,18 @@ impl Menu {
     }
 
     pub(crate) fn render(&mut self, ctx: &mut Context) {
+
+        if let Ok(sprite) = graphics::Image::new(ctx, "/logo.png") {
+            sprite.draw(
+                ctx,
+                graphics::DrawParam::default()
+                .dest(Point2::new(SCREEN_WIDTH / 4.0 - 1000.0 * 0.15 / 2.0, 100.0))
+                .scale(Vector2::new(0.15, 0.15))
+            ).expect("COULD NOT DRAW IMAGE");
+        } else {
+            println!("COULD NOT FIND IMAGE");
+        }
+
         // Draw list
         let list_drawable = graphics::Mesh::new_rectangle(
             ctx,
@@ -130,61 +153,7 @@ impl Menu {
         graphics::draw(ctx, &list_drawable, graphics::DrawParam::default())
             .expect("Could not draw list");
 
-        // Go through all clickables and draw them
-        for clickable in &mut self.clickables {
-            let mut color =clickable.color;
-            if clickable.hovered {
-                color = graphics::Color::from_rgb_u32(clickable.color.to_rgb_u32() - 5000);
-            }
-
-            // If the clickable is not a
-            // list item then we don't
-            // scroll it
-            let mut scroll = 0.0;
-            if clickable.list_item {
-                scroll = self.list.scroll
-            }
-
-            let rect =  graphics::Rect::new(
-                clickable.transform.x as f32,
-                clickable.transform.y as f32 + apply_scroll(scroll),
-                clickable.transform.width as f32,
-                clickable.transform.height as f32,
-            );
-            let drawable_clickable = graphics::Mesh::new_rectangle(
-                ctx,
-                graphics::DrawMode::fill(),
-                rect,
-                color,
-            );
-
-            match drawable_clickable {
-                Ok(drawable_clickable) => {
-                    // Optimization here, draw everything at once (Isak help me here :D)
-                    graphics::draw(ctx, &drawable_clickable, graphics::DrawParam::default())
-                        .expect("Could not draw clickable");
-                }
-                Err(_) => {}
-            }
-
-            let mut text = Text::new(clickable.text.clone());
-            let font = Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font");
-            let scale = f32::min(clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32, clickable.transform.height as f32 * 0.8);
-            text.set_font(font, graphics::Scale::uniform(scale));
-
-            text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
-
-            graphics::draw(
-                ctx,
-                &text,
-                graphics::DrawParam::default()
-                    .dest(Point2::<f32>::new(
-                        clickable.transform.x as f32,
-                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0
-                    ))
-                    .color(graphics::Color::from(DARK_COLOR))
-            ).expect("Error drawing clickable text");
-        }
+        self.draw_clickables(ctx, vec![ClickableGroup::MainMenu, ClickableGroup::MainMenuList]);
 
         // Draw scroll chin
         if self.list_elements() > 0.0 {
@@ -233,7 +202,7 @@ impl Menu {
             Err(_) => {}
         }
 
-        let low_overlapper = graphics::Mesh::new_rectangle(
+        match graphics::Mesh::new_rectangle(
             ctx,
             graphics::DrawMode::fill(),
             graphics::Rect::new(
@@ -243,13 +212,42 @@ impl Menu {
                 (SCREEN_HEIGHT - LIST_HEIGHT) / 2.0,
             ),
             graphics::Color::from(BACKGROUND_COLOR),
-        );
-        match low_overlapper {
+        ) {
             Ok(overlapper) => {
                 graphics::draw(ctx, &overlapper, graphics::DrawParam::default())
                     .expect("Draw error");
             }
             Err(_) => {}
         }
+
+        self.draw_text(
+            ctx,
+            String::from("Open lobbies"),
+            (
+                LIST_START_X,
+                SCREEN_HEIGHT * 0.01
+            ),
+            (
+                LIST_WIDTH,
+                SCREEN_HEIGHT * 0.08
+            ),
+            graphics::Color::from(LIGHT_COLOR),
+        graphics::Align::Center
+        );
+
+        let mut text = Text::new("A game created by Isak Einberg & Hampus Hallkvist");
+        let scale = 20.0;
+        text.set_font(self.font, graphics::Scale::uniform(scale));
+
+        graphics::draw(
+            ctx,
+            &text,
+            graphics::DrawParam::default()
+                .dest(Point2::<f32>::new(
+                    25.0,
+                    SCREEN_HEIGHT - 45.0
+                ))
+                .color(graphics::Color::from(LIGHT_COLOR))
+        ).expect("Error drawing clickable text");
     }
 }

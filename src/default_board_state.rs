@@ -1,16 +1,16 @@
-use crate::piece::{Board, Piece, PieceColor::*, PieceType::*};
+use crate::piece::{Board, Piece, PieceColor::*, PieceType};
 
 pub(crate) fn generate_default_board() -> Board {
     let mut board = vec![None; 64];
     let piece_order = [
-        Rook(false),
-        Knight,
-        Bishop,
-        King(false),
-        Queen,
-        Bishop,
-        Knight,
-        Rook(false),
+        PieceType::Rook(false),
+        PieceType::Knight,
+        PieceType::Bishop,
+        PieceType::King(false),
+        PieceType::Queen,
+        PieceType::Bishop,
+        PieceType::Knight,
+        PieceType::Rook(false),
     ];
     // White pieces
 
@@ -25,7 +25,7 @@ pub(crate) fn generate_default_board() -> Board {
     // White pawns
     for index in 8..16 {
         board[index] = Some(Piece {
-            piece_type: Pawn(false),
+            piece_type: PieceType::Pawn(false),
             color: White,
             index,
         });
@@ -34,7 +34,7 @@ pub(crate) fn generate_default_board() -> Board {
     // Black pawns
     for index in 48..56 {
         board[index] = Some(Piece {
-            piece_type: Pawn(false),
+            piece_type: PieceType::Pawn(false),
             color: Black,
             index,
         });
@@ -46,7 +46,8 @@ pub(crate) fn generate_default_board() -> Board {
             piece_type: piece_type.to_owned(),
             color: Black,
             index: index + 56,
-        })
+        });
     }
+
     board
 }

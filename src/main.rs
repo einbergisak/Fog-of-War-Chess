@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use game::Game;
-use ggez::event::{self};
+use ggez::event;
 use ggez::{
     conf,
     graphics::{self, Rect},
@@ -18,6 +18,7 @@ mod move_struct;
 mod piece;
 mod piece_movement;
 mod render_utilities;
+pub mod enter_name_screen;
 mod networking {
     pub mod connection;
     pub mod events;
@@ -26,11 +27,13 @@ mod menu {
     pub mod clickable;
     pub mod menu_state;
     pub mod menu_utilities;
+    pub mod menu_game_over;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct State {
-    pub(crate) count: i32,
+    pub(crate) entering_name: bool,
+    pub(crate) name: String,
     pub(crate) lobbies: Vec<Room>,
     pub(crate) lobby_sync: i32,
     pub(crate) event_validation: NetworkEventValidation,
@@ -44,7 +47,8 @@ const SCREEN_HEIGHT: f32 = 900.0;
 
 fn main() {
     let app_state = State {
-        count: 0,
+        entering_name: true,
+        name: String::from(""),
         incoming_move: None,
         lobbies: Vec::new(),
         lobby_sync: 0,
@@ -53,13 +57,17 @@ fn main() {
             join_room: false,
             opponent_connect: false,
             opponent_disconnect: false,
+            play_again: false,
+            set_color: None,
+            resign: false,
+            opponent_name: None
         },
         room_id: None
     };
     STATE.set(RwLock::new(app_state));
 
     let mut path;
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+    if let Ok(manifest_dir) = std::env::current_exe() {
         path = std::path::PathBuf::from(manifest_dir.clone());
         path.push("resources");
 

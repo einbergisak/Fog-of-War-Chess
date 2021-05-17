@@ -1,19 +1,23 @@
-use crate::networking::events;
+use crate::{networking::events, piece::PieceColor};
 use rust_socketio::{Socket, SocketBuilder};
 use serde_json::json;
 pub(crate) struct Networking {
     socket: Socket,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct NetworkEventValidation {
     pub(crate) create_room: bool,
     pub(crate) join_room: bool,
     pub(crate) opponent_connect: bool,
     pub(crate) opponent_disconnect: bool,
+    pub(crate) play_again: bool,
+    pub(crate) set_color: Option<PieceColor>,
+    pub(crate) resign: bool,
+    pub(crate) opponent_name: Option<String>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Room {
     pub(crate) id: String,
     pub(crate) members: i32,
@@ -21,7 +25,7 @@ pub(crate) struct Room {
 
 impl Networking {
     pub(crate) fn new() -> Networking {
-        let socket = SocketBuilder::new("http://localhost:8080")
+        let socket = SocketBuilder::new(/* "http://chess.datasektionen.link" */ "http://localhost:8080")
             .set_namespace("/")
             .expect("illegal namespace")
             .on("list_rooms_res", |payload, socket| {
@@ -44,6 +48,18 @@ impl Networking {
             })
             .on("list_rooms", |payload, socket| {
                 events::on_list_room(payload, socket)
+            })
+            .on("play_again", |payload, socket| {
+                events::on_play_again(payload, socket)
+            })
+            .on("set_opponent_color", |payload, socket| {
+                events::on_set_opponent_color(payload, socket)
+            })
+            .on("resign", |payload, socket| {
+                events::on_resign(payload, socket)
+            })
+            .on("get_opponent_name", |payload, socket| {
+                events::on_get_opponent_name(payload, socket)
             })
             .on("error", |err, _| eprintln!("Error: {:#?}", err))
             .connect()
