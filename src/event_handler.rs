@@ -292,8 +292,12 @@ impl EventHandler for Game {
                     || x < BOARD_ORIGO_X
                     || y < BOARD_ORIGO_Y
                 {
-                    println!("CLICK OUTSIDE {}", x);
+                    // Lets you cancel your premove by clicking on something that's not interactive
+                    if let Some(_) = self.premove {
+                        self.premove = None;
+                    }
                     return;
+                } else {
                 }
                 // Calculates (on screen) list index (if cursor is in bounds) of the clicked tile
                 let x_tile = (x - BOARD_ORIGO_X) as usize / TILE_SIZE as usize;
@@ -329,6 +333,11 @@ impl EventHandler for Game {
                 }
                 // Attempt to grab a piece from the clicked tile
                 if let Some(piece) = self.board[index].clone().take() {
+                    if let Some(m) = self.move_history.last() {
+                        if m.piece_dest_index == piece.get_index() && had_selected {
+                            return;
+                        }
+                    }
                     match &piece.color {
                         White if !self.playing_as_white => {
                             return;
