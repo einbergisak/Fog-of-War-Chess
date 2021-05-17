@@ -2,7 +2,6 @@ use rust_socketio::{Payload, Socket};
 
 use crate::{Room, STATE, move_struct::Move, piece::PieceColor};
 
-
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
     let app_state = STATE.get();
 

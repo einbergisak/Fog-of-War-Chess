@@ -1,7 +1,7 @@
 use crate::{
     event_handler::BOARD_SIZE,
     move_struct::Move,
-    piece::{Board, Piece, PieceColor::*, PieceType::*},
+    piece::piece::{Board, Piece, PieceColor::*, PieceType::*},
     render_utilities::translate_to_index,
 };
 
@@ -268,7 +268,6 @@ pub(crate) fn pawn_valid_moves(
 
         // En passant capture
         if (piece.color == White && y == 4) || (piece.color == Black && y == 3) {
-            println!("Last move: {:?}", move_history.last());
             if let Some(Move {
                 piece:
                     Piece {
@@ -285,10 +284,8 @@ pub(crate) fn pawn_valid_moves(
                     && *other_pawn_current_index == translate_to_index(adjacent_x, y)
                     && &piece.color != other_color
                 {
-                    println!("Yeet 2");
                     indices.push(translate_to_index(adjacent_x, one_forwards))
                 }
-                println!("Yeet 3");
             }
         }
     };

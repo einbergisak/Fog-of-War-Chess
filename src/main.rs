@@ -15,8 +15,12 @@ mod default_board_state;
 mod event_handler;
 mod game;
 mod move_struct;
-mod piece;
-mod piece_movement;
+mod piece {
+    pub mod piece;
+    pub mod piece_movement;
+    pub mod promotion;
+}
+
 mod render_utilities;
 pub mod enter_name_screen;
 mod networking {
@@ -38,7 +42,7 @@ pub(crate) struct State {
     pub(crate) lobby_sync: i32,
     pub(crate) event_validation: NetworkEventValidation,
     pub(crate) incoming_move: Option<Move>,
-    pub(crate) room_id: Option<String>
+    pub(crate) room_id: Option<String>,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -62,7 +66,7 @@ fn main() {
             resign: false,
             opponent_name: None
         },
-        room_id: None
+        room_id: None,
     };
     STATE.set(RwLock::new(app_state));
 

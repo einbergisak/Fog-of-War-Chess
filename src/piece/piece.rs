@@ -2,10 +2,12 @@ use ggez::graphics::Rect;
 
 use crate::{
     game::Game,
-    piece::PieceType::*,
-    piece_movement::{
-        bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
-        rook_valid_moves,
+    piece::{
+        piece::PieceType::*,
+        piece_movement::{
+            bishop_valid_moves, king_valid_moves, knight_valid_moves, pawn_valid_moves,
+            rook_valid_moves,
+        },
     },
     render_utilities::translate_to_coords,
 };
@@ -111,17 +113,8 @@ pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
     Rect::new(src_image_x, src_image_y, 1.0 / 6.0, 0.5)
 }
 
-pub(crate) fn get_valid_move_indices(
-    game: &mut Game,
-    piece: &Piece,
-    piece_source_index: usize,
-) -> Vec<usize> {
+pub(crate) fn get_valid_move_indices(game: &Game, piece: &Piece) -> Vec<usize> {
     let board = &game.board;
-    println!(
-        "Piece source index {}, cointains: {:?}",
-        piece_source_index, piece
-    );
-    println!("Found piece at source index {}", piece_source_index);
 
     // Returns a list of the valid moves
     match piece.piece_type {

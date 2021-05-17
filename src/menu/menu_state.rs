@@ -2,6 +2,15 @@ use super::{
     clickable::{Clickable, Transform},
     menu_utilities::is_within_boundary,
 };
+use crate::{
+    game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR},
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
+use ggez::{
+    graphics::{self, Font, Text},
+    nalgebra::Point2,
+    Context,
+};
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup};
 use ggez::{Context, graphics::{self, Drawable, Font, Text}, nalgebra::{Point2, Vector2}};
 
@@ -152,7 +161,7 @@ impl Menu {
 
         graphics::draw(ctx, &list_drawable, graphics::DrawParam::default())
             .expect("Could not draw list");
-
+      
         self.draw_clickables(ctx, vec![ClickableGroup::MainMenu, ClickableGroup::MainMenuList]);
 
         // Draw scroll chin

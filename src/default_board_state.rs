@@ -1,4 +1,4 @@
-use crate::piece::{Board, Piece, PieceColor::*, PieceType};
+use crate::piece::piece::{Board, Piece, PieceColor::*, PieceType};
 
 pub(crate) fn generate_default_board() -> Board {
     let mut board = vec![None; 64];
@@ -12,8 +12,8 @@ pub(crate) fn generate_default_board() -> Board {
         PieceType::Knight,
         PieceType::Rook(false),
     ];
-    // White pieces
 
+    // White pieces
     for (index, piece_type) in piece_order.iter().enumerate() {
         board[index] = Some(Piece {
             piece_type: piece_type.to_owned(),
