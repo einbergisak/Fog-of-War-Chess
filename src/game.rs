@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
@@ -52,7 +54,7 @@ pub(crate) struct Game {
     pub(crate) move_history: Vec<Move>,
     pub(crate) promoting_pawn: Option<Move>,
     pub(crate) available_moves: Vec<usize>,
-    pub(crate) premove: Option<(Piece, usize)>, // Piece to move and destination index
+    pub(crate) premove: VecDeque<(Piece, usize)>, // Piece to move and destination index
     pub(crate) winner: Option<PieceColor>,
     pub(crate) is_admin: bool,
 }
@@ -124,7 +126,7 @@ impl Game {
             move_history: Vec::new(),
             promoting_pawn: None,
             available_moves: Vec::new(),
-            premove: None,
+            premove: VecDeque::new(),
             winner: None,
             is_admin: false,
         }
@@ -434,7 +436,7 @@ impl Game {
         self.active_turn = false;
         self.grabbed_piece = None;
         self.selected_piece = None;
-        self.premove = None;
+        self.premove = VecDeque::new();
         self.move_history = Vec::new();
         self.promoting_pawn = None;
     }
@@ -511,6 +513,7 @@ impl Game {
         }
     }
 
+    // Attempt to move a piece
     pub(crate) fn attempt_move(&mut self, piece: Piece, piece_dest_index: usize) {
         let valid_moves = piece::get_valid_move_indices(self, &piece);
         println!("Current turn: {}", self.active_turn);
@@ -539,14 +542,20 @@ impl Game {
         }
         // If not your turn, add the move as a premove (if there isn't already one)
         else if !self.active_turn {
-            if self.premove.is_none() && piece_dest_index != piece.index {
+            // Only places the grabbed piece back on the board if there is no premove buffered.
+            // This is needed since if there is a premove buffered, the next move will also be a premove.
+            if self.premove.is_empty() {
+                self.board[piece.index] = Some(piece);
+            }
+
+            // TODO: Premove constraints
+            if piece_dest_index != piece.index {
                 println!(
                     "It's not your turn. Adding premove to index {} ",
                     piece_dest_index
                 );
-                self.premove = Some((piece, piece_dest_index));
+                self.premove.push_back((piece, piece_dest_index));
             }
-            self.board[piece.index] = Some(piece);
         } else {
             println!("Move to index {} is NOT valid.", piece_dest_index);
             // // Reset position to source

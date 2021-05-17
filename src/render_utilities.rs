@@ -7,7 +7,7 @@ use ggez::{
 use crate::{
     event_handler::{BOARD_ORIGO_X, BOARD_ORIGO_Y, BOARD_SIZE, TILE_SIZE},
     game::Game,
-    piece::piece::{get_piece_rect, get_valid_move_indices},
+    piece::piece::{get_piece_rect, get_valid_move_indices, Piece},
 };
 
 pub(crate) fn flip_index(index: usize) -> usize {
@@ -85,7 +85,15 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
     let mut hidden_tiles = MeshBuilder::new();
 
     // Render each piece in the board
-    for (index, tile) in game.board.iter().enumerate() {
+    'each_in_board: for (index, tile) in game.board.iter().enumerate() {
+        if let Some(piece) = tile {
+            // If the piece is in the premove queue, don't render it (it is instead rendered a bit down in this function, at the last premove destination).
+            for (premove_piece, _dest) in &game.premove {
+                if *piece == *premove_piece {
+                    continue 'each_in_board;
+                }
+            }
+        }
         let flipped_index = if game.playing_as_white {
             flip_index(index)
         } else {
@@ -97,6 +105,7 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
         let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
         let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
 
+        // Don't draw the grabbed piece at its source index (it is drawn where it is grabbed on screen)
         if let Some(i) = &grabbed_index {
             if game.playing_as_white {
                 if index == flip_index(*i) {
@@ -108,6 +117,7 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
                 }
             }
         }
+
         // Only draw the tiles which are in your vision
         if game.available_moves.contains(&index) {
             if let Some(piece) = tile {
@@ -128,6 +138,43 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
                 graphics::Color::from_rgba(30, 30, 30, 240),
             );
         }
+    }
+
+    let mut previous_premoves: Vec<(Piece, usize)> = Vec::new();
+
+    // If a premove is queued, render it at it's attempted destination index instead of its source index.
+    'outer: for (premove_piece, premove_dest) in &game.premove {
+        // If a piece is present multiple times in the premove queue, replace its older premove with it's newer in the "previous_premoves"-array.
+        // This makes sure that the piece is only drawn at it's final premove destination and not at every step of the premove.
+        for (i, (_prev_piece, prev_dest)) in previous_premoves.clone().iter().enumerate() {
+            if *prev_dest == premove_piece.get_index() {
+                previous_premoves.remove(i);
+                previous_premoves.insert(i, (*premove_piece, *premove_dest));
+                continue 'outer;
+            }
+        }
+        previous_premoves.push((*premove_piece, *premove_dest));
+    }
+
+    // Draws the destination of the final premove for each piece
+    for (piece, index) in previous_premoves {
+        let flipped_index = if game.playing_as_white {
+            flip_index(index)
+        } else {
+            index
+        };
+
+        let rel_x = (flipped_index % BOARD_SIZE) as f32;
+        let rel_y = (flipped_index / BOARD_SIZE) as f32;
+        let abs_x = rel_x * TILE_SIZE as f32 + BOARD_ORIGO_X;
+        let abs_y = rel_y * TILE_SIZE as f32 + BOARD_ORIGO_Y;
+
+        let rect = get_piece_rect(&piece);
+        let param = DrawParam::default()
+            .src(rect)
+            .dest(Point2::new(abs_x, abs_y));
+
+        piece_batch.add(param);
     }
 
     // Draw hidden tiles (aka "fog")
@@ -209,8 +256,8 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
         }
     }
 
-    // Renders premoves
-    if let Some((piece, piece_dest_index)) = game.premove {
+    // Renders premove highlighting
+    for (piece, piece_dest_index) in &game.premove {
         // Source tile
         let dp_source_tile = DrawParam::default()
             .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
@@ -231,9 +278,9 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
             .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
             .dest({
                 let (x, y) = if game.playing_as_white {
-                    flip_pos(translate_to_coords(piece_dest_index))
+                    flip_pos(translate_to_coords(*piece_dest_index))
                 } else {
-                    translate_to_coords(piece_dest_index)
+                    translate_to_coords(*piece_dest_index)
                 };
                 let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X;
                 let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y;

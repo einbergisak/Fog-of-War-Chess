@@ -238,6 +238,13 @@ pub(crate) fn pawn_valid_moves(
         -1
     };
 
+    // Prevents the pawn from moving out of bounds.
+    // No pawn can exist at the top or bottom of the board due to promotion, but by premoving it is possible to attempt it, leading to index out of bounds error
+    let one_step_forwards_y = y as i32 + 1 * y_direction;
+    if one_step_forwards_y < 0 || one_step_forwards_y > 7 {
+        return indices;
+    }
+
     let one_forwards = (y as i32 + 1 * y_direction) as usize;
     let two_forwards = (y as i32 + 2 * y_direction) as usize;
 

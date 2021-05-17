@@ -80,7 +80,7 @@ impl PieceType {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
     pub(crate) color: PieceColor,
