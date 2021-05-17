@@ -307,8 +307,11 @@ impl EventHandler for Game {
                 // Pawn promotion interface
                 piece::promotion::check_promotion(self, x_tile, y_tile);
 
+                let mut had_selected = false;
+
                 // If a piece has been selected by clicking, try to move to the clicked tile
                 if let Some(piece) = self.selected_piece.take() {
+                    had_selected = true;
                     let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
                     if self.playing_as_white {
@@ -339,12 +342,13 @@ impl EventHandler for Game {
                     // Lock the cursor inside the application
                     ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
                     ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
-                } else {
+                }
+                // If a piece was selected when this function was called, don't interpret a the click as a premove cancel
+                else if !had_selected {
                     // Lets you cancel your premove by clicking on something that's not interactive
                     if let Some(_) = self.premove {
                         self.premove = None;
                     }
-                    return;
                 }
             }
             _ => {}

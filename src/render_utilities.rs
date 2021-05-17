@@ -243,8 +243,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
     }
 
     // Highlights the square underneath your grabbed piece to indicate where it will be placed if dropped.
-    if let Some(piece) = &game.grabbed_piece{
-
+    if let Some(piece) = &game.grabbed_piece {
         let (cursor_x, cursor_y) = (
             ggez::input::mouse::position(ctx).x,
             ggez::input::mouse::position(ctx).y,
@@ -260,10 +259,16 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
         }
 
         // Only highlights the square if it is a valid move
-        if get_valid_move_indices(game, piece).contains(&hovered_index){
-            let dest_rect = Point2::new(x_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X, y_tile as f32*TILE_SIZE as f32 + BOARD_ORIGO_Y);
-            let src_rect = Rect::new(3.0/4.0, 0.0, 1.0/4.0, 1.0);
-            let dp = DrawParam::default().src(src_rect).dest(dest_rect).color(graphics::Color::from_rgba(100, 200, 100, 250));
+        if get_valid_move_indices(game, piece).contains(&hovered_index) {
+            let dest_rect = Point2::new(
+                x_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X,
+                y_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y,
+            );
+            let src_rect = Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0);
+            let dp = DrawParam::default()
+                .src(src_rect)
+                .dest(dest_rect)
+                .color(graphics::Color::from_rgba(100, 200, 100, 250));
             movement_indication_batch.add(dp);
         }
     }
