@@ -6,7 +6,7 @@ pub(crate) enum ClickableGroup {
     MainMenu = 1,
     MainMenuList = 2,
     InGame = 3,
-    GameOverMenu = 4
+    GameOverMenu = 4,
 }
 
 pub(crate) struct Transform {
@@ -22,5 +22,5 @@ pub(crate) struct Clickable {
     pub(crate) text: String,
     pub(crate) hovered: bool,
     pub(crate) list_item: bool,
-    pub(crate) group: ClickableGroup
+    pub(crate) group: ClickableGroup,
 }

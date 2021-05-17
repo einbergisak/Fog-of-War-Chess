@@ -2,17 +2,17 @@ use super::{
     clickable::{Clickable, Transform},
     menu_utilities::is_within_boundary,
 };
+use crate::menu::clickable::ClickableGroup;
 use crate::{
-    game::{BACKGROUND_COLOR, DARK_COLOR, LIGHT_COLOR},
+    game::{BACKGROUND_COLOR, LIGHT_COLOR},
     SCREEN_HEIGHT, SCREEN_WIDTH,
 };
+use ggez::{graphics::Drawable, nalgebra::Vector2};
 use ggez::{
     graphics::{self, Font, Text},
     nalgebra::Point2,
     Context,
 };
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup};
-use ggez::{Context, graphics::{self, Drawable, Font, Text}, nalgebra::{Point2, Vector2}};
 
 pub(crate) const LIST_WIDTH: f32 = SCREEN_WIDTH / 2.0 * 0.8;
 pub(crate) const LIST_HEIGHT: f32 = SCREEN_HEIGHT as f32 * 0.8;
@@ -34,7 +34,7 @@ pub(crate) struct Menu {
     pub(crate) clickables: Vec<Clickable>,
     pub(crate) list: List,
     last_iteration_hover: bool,
-    pub(crate) font: Font
+    pub(crate) font: Font,
 }
 
 impl Menu {
@@ -53,14 +53,19 @@ impl Menu {
                 scroll: 0.0,
                 hovered: false,
             },
-            font: Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font")
+            font: Font::new(ctx, "/fonts/Roboto-Regular.ttf").expect("Error loading font"),
         }
     }
 
-    pub(crate) fn on_mouse_move(&mut self, ctx: &mut Context, x: f32, y: f32, selected_groups: Vec<ClickableGroup>) {
+    pub(crate) fn on_mouse_move(
+        &mut self,
+        ctx: &mut Context,
+        x: f32,
+        y: f32,
+        selected_groups: Vec<ClickableGroup>,
+    ) {
         let mut is_hovering = false;
         for clickable in &mut self.clickables {
-
             // If the selected button isn't in the selection group
             // we ignore it
             if !selected_groups.contains(&clickable.group) {
@@ -133,14 +138,15 @@ impl Menu {
     }
 
     pub(crate) fn render(&mut self, ctx: &mut Context) {
-
         if let Ok(sprite) = graphics::Image::new(ctx, "/logo.png") {
-            sprite.draw(
-                ctx,
-                graphics::DrawParam::default()
-                .dest(Point2::new(SCREEN_WIDTH / 4.0 - 1000.0 * 0.15 / 2.0, 100.0))
-                .scale(Vector2::new(0.15, 0.15))
-            ).expect("COULD NOT DRAW IMAGE");
+            sprite
+                .draw(
+                    ctx,
+                    graphics::DrawParam::default()
+                        .dest(Point2::new(SCREEN_WIDTH / 4.0 - 1000.0 * 0.15 / 2.0, 100.0))
+                        .scale(Vector2::new(0.15, 0.15)),
+                )
+                .expect("COULD NOT DRAW IMAGE");
         } else {
             println!("COULD NOT FIND IMAGE");
         }
@@ -161,8 +167,11 @@ impl Menu {
 
         graphics::draw(ctx, &list_drawable, graphics::DrawParam::default())
             .expect("Could not draw list");
-      
-        self.draw_clickables(ctx, vec![ClickableGroup::MainMenu, ClickableGroup::MainMenuList]);
+
+        self.draw_clickables(
+            ctx,
+            vec![ClickableGroup::MainMenu, ClickableGroup::MainMenuList],
+        );
 
         // Draw scroll chin
         if self.list_elements() > 0.0 {
@@ -232,16 +241,10 @@ impl Menu {
         self.draw_text(
             ctx,
             String::from("Open lobbies"),
-            (
-                LIST_START_X,
-                SCREEN_HEIGHT * 0.01
-            ),
-            (
-                LIST_WIDTH,
-                SCREEN_HEIGHT * 0.08
-            ),
+            (LIST_START_X, SCREEN_HEIGHT * 0.01),
+            (LIST_WIDTH, SCREEN_HEIGHT * 0.08),
             graphics::Color::from(LIGHT_COLOR),
-        graphics::Align::Center
+            graphics::Align::Center,
         );
 
         let mut text = Text::new("A game created by Isak Einberg & Hampus Hallkvist");
@@ -252,11 +255,9 @@ impl Menu {
             ctx,
             &text,
             graphics::DrawParam::default()
-                .dest(Point2::<f32>::new(
-                    25.0,
-                    SCREEN_HEIGHT - 45.0
-                ))
-                .color(graphics::Color::from(LIGHT_COLOR))
-        ).expect("Error drawing clickable text");
+                .dest(Point2::<f32>::new(25.0, SCREEN_HEIGHT - 45.0))
+                .color(graphics::Color::from(LIGHT_COLOR)),
+        )
+        .expect("Error drawing clickable text");
     }
 }

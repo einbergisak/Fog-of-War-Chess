@@ -1,11 +1,22 @@
-use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
+use ggez::{
+    graphics::{self, Text},
+    nalgebra::Point2,
+    Context,
+};
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{DARK_COLOR, LIGHT_COLOR}, networking::connection::Room};
+use crate::{
+    game::{DARK_COLOR, LIGHT_COLOR},
+    networking::connection::Room,
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
 
-use super::{clickable::{Clickable, ClickableGroup, Transform}, menu_state::{
+use super::{
+    clickable::{Clickable, ClickableGroup, Transform},
+    menu_state::{
         Menu, LIST_CHIN_HEIGHT, LIST_HEIGHT, LIST_ITEM_HEIGHT, LIST_ITEM_MARGIN, LIST_ITEM_WIDTH,
         LIST_WIDTH,
-    }};
+    },
+};
 
 pub(crate) fn is_within_boundary(
     transform: &Transform,
@@ -88,7 +99,7 @@ impl Menu {
                 list_item: true,
                 color: graphics::Color::from(DARK_COLOR),
                 text: elements[i].id.clone(),
-                group: ClickableGroup::MainMenuList
+                group: ClickableGroup::MainMenuList,
             })
         }
     }
@@ -114,18 +125,20 @@ impl Menu {
         return elements;
     }
 
-    pub(crate) fn draw_clickables(&mut self, ctx: &mut Context, selected_groups: Vec<ClickableGroup>) {
-
+    pub(crate) fn draw_clickables(
+        &mut self,
+        ctx: &mut Context,
+        selected_groups: Vec<ClickableGroup>,
+    ) {
         // Go through all clickables and draw them
         for clickable in &mut self.clickables {
-
             // We don't render clickables that
             // arent in the selected group
             if !selected_groups.contains(&clickable.group) {
                 continue;
             }
 
-            let mut color =clickable.color;
+            let mut color = clickable.color;
             if clickable.hovered {
                 color = graphics::Color::from_rgb_u32(clickable.color.to_rgb_u32() - 5000);
             }
@@ -138,18 +151,14 @@ impl Menu {
                 scroll = self.list.scroll
             }
 
-            let rect =  graphics::Rect::new(
+            let rect = graphics::Rect::new(
                 clickable.transform.x as f32,
                 clickable.transform.y as f32 + apply_scroll(scroll),
                 clickable.transform.width as f32,
                 clickable.transform.height as f32,
             );
-            let drawable_clickable = graphics::Mesh::new_rectangle(
-                ctx,
-                graphics::DrawMode::fill(),
-                rect,
-                color,
-            );
+            let drawable_clickable =
+                graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color);
 
             match drawable_clickable {
                 Ok(drawable_clickable) => {
@@ -161,12 +170,19 @@ impl Menu {
             }
 
             let mut text = Text::new(clickable.text.clone());
-            let scale = f32::min(clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32, clickable.transform.height as f32 * 0.8);
+            let scale = f32::min(
+                clickable.transform.width as f32 * 2.0 / clickable.text.len() as f32,
+                clickable.transform.height as f32 * 0.8,
+            );
             text.set_font(self.font, graphics::Scale::uniform(scale));
 
             text.set_bounds(Point2::new(rect.w, rect.h), graphics::Align::Center);
 
-            let color = if clickable.list_item {LIGHT_COLOR} else {DARK_COLOR};
+            let color = if clickable.list_item {
+                LIGHT_COLOR
+            } else {
+                DARK_COLOR
+            };
 
             graphics::draw(
                 ctx,
@@ -174,14 +190,23 @@ impl Menu {
                 graphics::DrawParam::default()
                     .dest(Point2::<f32>::new(
                         clickable.transform.x as f32,
-                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0
+                        clickable.transform.y as f32 + rect.h / 2.0 - scale / 2.0,
                     ))
-                    .color(graphics::Color::from(color))
-            ).expect("Error drawing clickable text");
+                    .color(graphics::Color::from(color)),
+            )
+            .expect("Error drawing clickable text");
         }
     }
 
-    pub(crate) fn draw_text(&mut self, ctx: &mut Context, text: String, position: (f32, f32), size: (f32, f32), color: graphics::Color, alignment: graphics::Align) {
+    pub(crate) fn draw_text(
+        &mut self,
+        ctx: &mut Context,
+        text: String,
+        position: (f32, f32),
+        size: (f32, f32),
+        color: graphics::Color,
+        alignment: graphics::Align,
+    ) {
         // Draw player name
         let mut text = Text::new(text);
         let scale = size.1;
@@ -193,11 +218,9 @@ impl Menu {
             ctx,
             &text,
             graphics::DrawParam::default()
-                .dest(Point2::<f32>::new(
-                    position.0,
-                    position.1
-                ))
-                .color(color)
-        ).expect("Error drawing clickable text");
+                .dest(Point2::<f32>::new(position.0, position.1))
+                .color(color),
+        )
+        .expect("Error drawing clickable text");
     }
 }

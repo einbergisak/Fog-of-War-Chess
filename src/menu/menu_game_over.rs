@@ -1,6 +1,14 @@
-use ggez::{Context, graphics::{self, Font, Text}, nalgebra::Point2};
+use ggez::{
+    graphics::{self, Text},
+    nalgebra::Point2,
+    Context,
+};
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, game::{BACKGROUND_COLOR, LIGHT_COLOR}, piece::PieceColor};
+use crate::{
+    game::{BACKGROUND_COLOR, LIGHT_COLOR},
+    piece::piece::PieceColor,
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
 
 use super::{clickable::ClickableGroup, menu_state::Menu};
 
@@ -10,23 +18,22 @@ pub(crate) const GAME_OVER_MENU_WIDTH: f32 = SCREEN_WIDTH * 0.4;
 pub(crate) const GAME_OVER_MENU_HEIGHT: f32 = SCREEN_HEIGHT * 0.7;
 
 impl Menu {
-	pub(crate) fn render_game_over(&mut self, ctx: &mut Context, winner: Option<PieceColor>) {
-
-		// Draw list
+    pub(crate) fn render_game_over(&mut self, ctx: &mut Context, winner: Option<PieceColor>) {
+        // Draw list
         if let Ok(drawable) = graphics::Mesh::new_rectangle(
-                    ctx,
-                    graphics::DrawMode::fill(),
-                    graphics::Rect::new(
-                        GAME_OVER_START_X,
-                        GAME_OVER_START_Y,
-                        GAME_OVER_MENU_WIDTH,
-                        GAME_OVER_MENU_HEIGHT,
-                    ),
-                    graphics::Color::from(BACKGROUND_COLOR),
-                ) {
-			graphics::draw(ctx, &drawable, graphics::DrawParam::default())
-            .expect("Could not draw list");
-		}
+            ctx,
+            graphics::DrawMode::fill(),
+            graphics::Rect::new(
+                GAME_OVER_START_X,
+                GAME_OVER_START_Y,
+                GAME_OVER_MENU_WIDTH,
+                GAME_OVER_MENU_HEIGHT,
+            ),
+            graphics::Color::from(BACKGROUND_COLOR),
+        ) {
+            graphics::draw(ctx, &drawable, graphics::DrawParam::default())
+                .expect("Could not draw list");
+        }
 
         let mut text = Text::new("");
         match winner {
@@ -41,7 +48,10 @@ impl Menu {
 
         let scale = 50.0;
         text.set_font(self.font, graphics::Scale::uniform(scale));
-        text.set_bounds(Point2::new(SCREEN_WIDTH * 0.4, 50.0), graphics::Align::Center);
+        text.set_bounds(
+            Point2::new(SCREEN_WIDTH * 0.4, 50.0),
+            graphics::Align::Center,
+        );
 
         graphics::draw(
             ctx,
@@ -49,12 +59,13 @@ impl Menu {
             graphics::DrawParam::default()
                 .dest(Point2::<f32>::new(
                     SCREEN_WIDTH / 2.0 - GAME_OVER_MENU_WIDTH / 2.0,
-                    SCREEN_HEIGHT / 2.0 - GAME_OVER_MENU_HEIGHT / 2.0 + 50.0
+                    SCREEN_HEIGHT / 2.0 - GAME_OVER_MENU_HEIGHT / 2.0 + 50.0,
                 ))
-                .color(graphics::Color::from(LIGHT_COLOR))
-        ).expect("Error drawing clickable text");
+                .color(graphics::Color::from(LIGHT_COLOR)),
+        )
+        .expect("Error drawing clickable text");
 
         // Draw clickables
-		self.draw_clickables(ctx, vec![ClickableGroup::GameOverMenu]);
-	}
+        self.draw_clickables(ctx, vec![ClickableGroup::GameOverMenu]);
+    }
 }

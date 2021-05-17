@@ -21,17 +21,17 @@ mod piece {
     pub mod promotion;
 }
 
-mod render_utilities;
 pub mod enter_name_screen;
+mod render_utilities;
 mod networking {
     pub mod connection;
     pub mod events;
 }
 mod menu {
     pub mod clickable;
+    pub mod menu_game_over;
     pub mod menu_state;
     pub mod menu_utilities;
-    pub mod menu_game_over;
 }
 
 #[derive(Debug, Clone)]
@@ -64,7 +64,7 @@ fn main() {
             play_again: false,
             set_color: None,
             resign: false,
-            opponent_name: None
+            opponent_name: None,
         },
         room_id: None,
     };

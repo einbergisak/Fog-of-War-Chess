@@ -1,6 +1,6 @@
 use rust_socketio::{Payload, Socket};
 
-use crate::{Room, STATE, move_struct::Move, piece::PieceColor};
+use crate::{move_struct::Move, piece::piece::PieceColor, Room, STATE};
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
     let app_state = STATE.get();
@@ -126,7 +126,7 @@ pub(crate) fn on_list_room(payload: Payload, _: Socket) {
 }
 
 pub(crate) fn on_play_again(payload: Payload, _: Socket) {
-match payload {
+    match payload {
         Payload::String(_) => {
             println!("Received play again, changing STATE!");
             STATE.get().write().unwrap().event_validation.play_again = true;
@@ -136,7 +136,7 @@ match payload {
 }
 
 pub(crate) fn on_set_opponent_color(payload: Payload, _: Socket) {
-match payload {
+    match payload {
         Payload::String(mut str) => {
             str = str.replace("\"", "");
             if str == "white" {
@@ -150,7 +150,7 @@ match payload {
 }
 
 pub(crate) fn on_resign(payload: Payload, _: Socket) {
-match payload {
+    match payload {
         Payload::String(_) => {
             STATE.get().write().unwrap().event_validation.resign = true;
         }
@@ -161,7 +161,8 @@ match payload {
 pub(crate) fn on_get_opponent_name(payload: Payload, _: Socket) {
     match payload {
         Payload::String(opponent_name) => {
-            STATE.get().write().unwrap().event_validation.opponent_name = Some(opponent_name.replace("\"", ""));
+            STATE.get().write().unwrap().event_validation.opponent_name =
+                Some(opponent_name.replace("\"", ""));
         }
         Payload::Binary(_) => {}
     }

@@ -1,19 +1,21 @@
-
-use ggez::{Context, GameResult, event::{EventHandler, KeyCode, KeyMods, MouseButton}, graphics::{self, DrawParam, Image, spritebatch::SpriteBatch}, nalgebra::Point2};
-
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, enter_name_screen::on_key_down, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::{clickable::ClickableGroup, menu_state::Menu}, piece::{get_piece_rect, get_valid_move_indices, Piece}, render_utilities::{flip_board, flip_index, translate_to_index}};
 use ggez::{
-    event::{EventHandler, MouseButton},
-    graphics::{self, Font, Text},
+    event::{EventHandler, KeyCode, KeyMods, MouseButton},
+    graphics,
     nalgebra::Point2,
     Context, GameResult,
 };
 
 use crate::{
+    enter_name_screen::on_key_down,
     game::{BACKGROUND_COLOR, LIGHT_COLOR},
-    piece::{self, piece::PieceColor},
-    render_utilities::{self, flip_index, translate_to_index},
+    menu::clickable::ClickableGroup,
+    render_utilities::{flip_index, translate_to_index},
     Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
+};
+
+use crate::{
+    piece::{self, piece::PieceColor::*},
+    render_utilities,
 };
 
 pub(crate) const BOARD_SIZE: usize = 8;
@@ -25,7 +27,6 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-
         while ggez::timer::check_update_time(ctx, 60) {
             let state_read = STATE.get().read().unwrap().clone();
 
@@ -48,13 +49,11 @@ impl EventHandler for Game {
                     }
                 }
             }
-        }
 
             // Check if network state has updated
             let event_validation = state_read.event_validation;
 
             if self.menu.visible || self.winner.is_some() {
-
                 // Check if lobbies have changed
                 if self.lobby_sync != state_read.lobby_sync {
                     self.menu.clear_list_items_from_list();
@@ -86,6 +85,8 @@ impl EventHandler for Game {
                     self.reset_game();
                     self.playing_as_white = !self.playing_as_white;
                     self.active_turn = self.playing_as_white;
+
+                    self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.play_again = false;
                 }
             }
@@ -105,22 +106,36 @@ impl EventHandler for Game {
                     String::from("white")
                 };
                 self.connection.send("set_opponent_color", &color);
-                STATE.get().write().unwrap().event_validation.opponent_connect = false;
+                STATE
+                    .get()
+                    .write()
+                    .unwrap()
+                    .event_validation
+                    .opponent_connect = false;
             }
 
             if event_validation.opponent_disconnect {
-                STATE.get().write().unwrap().event_validation.opponent_disconnect = false;
+                STATE
+                    .get()
+                    .write()
+                    .unwrap()
+                    .event_validation
+                    .opponent_disconnect = false;
             }
 
             match event_validation.set_color {
                 Some(White) => {
                     self.playing_as_white = true;
                     self.active_turn = true;
+
+                    self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.set_color = None;
                 }
                 Some(Black) => {
                     self.playing_as_white = false;
                     self.active_turn = false;
+
+                    self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.set_color = None;
                 }
                 _ => {}
@@ -131,7 +146,6 @@ impl EventHandler for Game {
                 STATE.get().write().unwrap().event_validation.resign = false;
             }
         }
-
         Ok(())
     }
 
@@ -156,7 +170,8 @@ impl EventHandler for Game {
 
         if read_state.entering_name {
             self.menu.render_name_interface(ctx);
-            self.menu.draw_clickables(ctx, vec![ClickableGroup::EnterName]);
+            self.menu
+                .draw_clickables(ctx, vec![ClickableGroup::EnterName]);
             return graphics::present(ctx);
         }
 
@@ -176,19 +191,14 @@ impl EventHandler for Game {
         // Draw room code
         if let Some(id) = &read_state.room_id {
             self.menu.draw_text(
-                ctx, format!("Room code: {}", id.clone().replace("\"", "")),
-                (
-                    BOARD_ORIGO_X,
-                    50.0 / 2.0 - 40.0 / 2.0
-                ),
-                (
-                    BOARD_WIDTH as f32,
-                    40.0
-                ),
+                ctx,
+                format!("Room code: {}", id.clone().replace("\"", "")),
+                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
+                (BOARD_WIDTH as f32, 40.0),
                 graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Right
+                graphics::Align::Right,
             );
-      }
+        }
 
         render_utilities::render_movement_indication(&self, ctx)?;
 
@@ -202,31 +212,25 @@ impl EventHandler for Game {
             self.menu.draw_text(
                 ctx,
                 name,
-                (
-                    BOARD_ORIGO_X,
-                    50.0 / 2.0 - 40.0 / 2.0
-                ),
+                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
                 (
                     BOARD_WIDTH as f32,
-                    40.0  // Same height as the room code text
+                    40.0, // Same height as the room code text
                 ),
                 graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left
+                graphics::Align::Left,
             );
         } else {
             self.menu.draw_text(
                 ctx,
                 String::from("Awaiting player..."),
-                (
-                    BOARD_ORIGO_X,
-                    50.0 / 2.0 - 40.0 / 2.0
-                ),
+                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
                 (
                     BOARD_WIDTH as f32,
-                    40.0  // Same height as the room code text
+                    40.0, // Same height as the room code text
                 ),
                 graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left
+                graphics::Align::Left,
             );
         }
 
@@ -235,16 +239,13 @@ impl EventHandler for Game {
         self.menu.draw_text(
             ctx,
             name,
-            (
-                BOARD_ORIGO_X,
-                SCREEN_HEIGHT - 50.0 / 2.0 - 40.0 / 2.0
-            ),
+            (BOARD_ORIGO_X, SCREEN_HEIGHT - 50.0 / 2.0 - 40.0 / 2.0),
             (
                 BOARD_WIDTH as f32,
-                40.0  // Same height as the room code text
+                40.0, // Same height as the room code text
             ),
             graphics::Color::from(LIGHT_COLOR),
-            graphics::Align::Left
+            graphics::Align::Left,
         );
 
         self.menu.draw_clickables(ctx, vec![ClickableGroup::InGame]);
@@ -260,7 +261,6 @@ impl EventHandler for Game {
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
             MouseButton::Left => {
-
                 let read_state = STATE.get().read().unwrap().clone();
 
                 // UI logic
@@ -327,10 +327,10 @@ impl EventHandler for Game {
                 // Attempt to grab a piece from the clicked tile
                 if let Some(piece) = self.board[index].clone().take() {
                     match &piece.color {
-                        PieceColor::White if !self.playing_as_white => {
+                        White if !self.playing_as_white => {
                             return;
                         }
-                        PieceColor::Black if self.playing_as_white => {
+                        Black if self.playing_as_white => {
                             return;
                         }
                         _ => {}
@@ -411,20 +411,21 @@ impl EventHandler for Game {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
-
         let mut active_groups: Vec<ClickableGroup> = Vec::new();
         // Entering name state
         if STATE.get().read().unwrap().entering_name {
             active_groups.push(ClickableGroup::EnterName);
-        } // End game screen
+        }
+        // End game screen
         else if self.winner.is_some() {
             active_groups.push(ClickableGroup::GameOverMenu);
-        } // Main menu screen
+        }
+        // Main menu screen
         else if self.menu.visible {
             active_groups.push(ClickableGroup::MainMenu);
             active_groups.push(ClickableGroup::MainMenuList);
-        }
-        else { // In game
+        } else {
+            // In game
             active_groups.push(ClickableGroup::InGame);
         }
 
@@ -435,7 +436,13 @@ impl EventHandler for Game {
         self.menu.on_mouse_wheel(ctx, y);
     }
 
-    fn key_down_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods, repeat: bool) {
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: KeyCode,
+        keymods: KeyMods,
+        repeat: bool,
+    ) {
         on_key_down(keycode, keymods, repeat);
     }
 }

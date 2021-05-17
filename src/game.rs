@@ -1,4 +1,3 @@
-
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
@@ -11,13 +10,20 @@ use crate::{
         menu_state::Menu,
     },
     move_struct::MoveType,
-    piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*},
+    piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *},
     SCREEN_HEIGHT, SCREEN_WIDTH,
 };
-use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect}};
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, event_handler::BOARD_WIDTH, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
-
+use crate::{
+    event_handler::BOARD_WIDTH,
+    menu::{
+        clickable::ClickableGroup,
+        menu_game_over::{
+            GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y,
+        },
+    },
+    STATE,
+};
 
 use crate::{
     event_handler::BOARD_SIZE,
@@ -48,7 +54,7 @@ pub(crate) struct Game {
     pub(crate) available_moves: Vec<usize>,
     pub(crate) premove: Option<(Piece, usize)>, // Piece to move and destination index
     pub(crate) winner: Option<PieceColor>,
-    pub(crate) is_admin: bool
+    pub(crate) is_admin: bool,
 }
 
 impl Game {
@@ -67,7 +73,7 @@ impl Game {
             hovered: false,
             text: String::from("Create room"),
             list_item: false,
-            group: ClickableGroup::MainMenu
+            group: ClickableGroup::MainMenu,
         });
 
         let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
@@ -76,16 +82,17 @@ impl Game {
         menu.clickables.push(Clickable {
             id: String::from("resign_game_button"),
             transform: Transform {
-                x: (board_right_edge + (SCREEN_WIDTH - board_right_edge) / 2.0 - 125.0 / 2.0) as i32,
+                x: (board_right_edge + (SCREEN_WIDTH - board_right_edge) / 2.0 - 125.0 / 2.0)
+                    as i32,
                 y: (SCREEN_HEIGHT / 2.0 - 25.0) as i32,
                 width: 125,
-                height: 50
+                height: 50,
             },
             color: Color::from(ERROR_COLOR),
             hovered: false,
             list_item: false,
             text: String::from("Resign"),
-            group: ClickableGroup::InGame
+            group: ClickableGroup::InGame,
         });
 
         // Submit name button
@@ -95,13 +102,13 @@ impl Game {
                 x: (SCREEN_WIDTH / 2.0 - 150.0) as i32,
                 y: (SCREEN_HEIGHT * 3.0 / 4.0 - 125.0 / 2.0) as i32,
                 width: 300,
-                height: 125
+                height: 125,
             },
             color: Color::from(LIGHT_COLOR),
             hovered: false,
             list_item: false,
             text: String::from("Submit name"),
-            group: ClickableGroup::EnterName
+            group: ClickableGroup::EnterName,
         });
 
         Game {
@@ -119,7 +126,7 @@ impl Game {
             available_moves: Vec::new(),
             premove: None,
             winner: None,
-            is_admin: false
+            is_admin: false,
         }
     }
 
@@ -390,29 +397,30 @@ impl Game {
                 x: (GAME_OVER_START_X + 100.0) as i32,
                 y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
                 width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
-                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32,
             },
             id: String::from("play_again"),
             text: String::from("Play again"),
             list_item: false,
             hovered: false,
             color: Color::from(LIGHT_COLOR),
-            group: ClickableGroup::GameOverMenu
+            group: ClickableGroup::GameOverMenu,
         });
 
         self.menu.clickables.push(Clickable {
             transform: Transform {
-                x: (GAME_OVER_START_X + GAME_OVER_MENU_WIDTH - 100.0 - GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                x: (GAME_OVER_START_X + GAME_OVER_MENU_WIDTH - 100.0 - GAME_OVER_MENU_WIDTH * 0.3)
+                    as i32,
                 y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
                 width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
-                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32,
             },
             id: String::from("goto_main_menu"),
             text: String::from("Leave"),
             list_item: false,
             hovered: false,
             color: Color::from(LIGHT_COLOR),
-            group: ClickableGroup::GameOverMenu
+            group: ClickableGroup::GameOverMenu,
         });
 
         // Prevent the current buttons from being cliked next time
@@ -425,6 +433,10 @@ impl Game {
         self.winner = None;
         self.active_turn = false;
         self.grabbed_piece = None;
+        self.selected_piece = None;
+        self.premove = None;
+        self.move_history = Vec::new();
+        self.promoting_pawn = None;
     }
 
     #[allow(unused_assignments)]
@@ -432,9 +444,9 @@ impl Game {
         let read_state = STATE.get().read().unwrap().clone();
 
         for mut i in 0..self.menu.clickables.len() {
-
-            if self.menu.clickables[i].hovered && allowed_group.contains(&self.menu.clickables[i].group) {
-
+            if self.menu.clickables[i].hovered
+                && allowed_group.contains(&self.menu.clickables[i].group)
+            {
                 match &self.menu.clickables[i].id[..] {
                     "create_room_button" => {
                         self.connection.send("create_room", "");
@@ -443,6 +455,8 @@ impl Game {
                         self.reset_game();
                         self.playing_as_white = !self.playing_as_white;
                         self.active_turn = self.playing_as_white;
+
+                        self.update_available_moves();
                         self.connection.send("play_again", "");
                     }
                     "goto_main_menu" => {
@@ -453,7 +467,11 @@ impl Game {
                         self.connection.send("list_rooms", "");
                     }
                     "resign_game_button" => {
-                        let winner = if self.playing_as_white { PieceColor::Black } else { PieceColor::White };
+                        let winner = if self.playing_as_white {
+                            PieceColor::Black
+                        } else {
+                            PieceColor::White
+                        };
                         self.game_over(winner);
                         self.connection.send("resign", "");
                     }
@@ -463,7 +481,14 @@ impl Game {
                             self.connection.send("set_name", &read_state.name);
 
                             // Delete the button after it has been used
-                            let index = self.menu.clickables.iter().position(|current| current.id == String::from("submit_name_button")).unwrap();
+                            let index = self
+                                .menu
+                                .clickables
+                                .iter()
+                                .position(|current| {
+                                    current.id == String::from("submit_name_button")
+                                })
+                                .unwrap();
                             self.menu.clickables.remove(index);
 
                             i -= 1;

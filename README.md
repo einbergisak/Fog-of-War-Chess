@@ -33,20 +33,20 @@ Upplägg:
     * ~Win/lose system~
   * ~Main menu implementation~
   * ~Special rules (rockad/castling, promotion, en passant)~
-  
+
 * Tredje veckan/Om tid finns:
-  * Fog of war-system (Isak)
-    * (Pjäser kan “se” de rutor som de kan attackera och/eller gå till)
-  * Movement indication (Isak)
-  * Select by clicking (Isak)
+  * ~Fog of war-system (Isak)~
+    * ~(Pjäser kan “se” de rutor som de kan attackera och/eller gå till)~
+  * ~Movement indication (Isak)~
+  * ~Select by clicking (Isak)~
   * Ljudsystem (Hampus)
-  * Vinst/förlust (att nått händer) (Hampus)
-  * Dekorera main menu (Hampus)
+  * ~Vinst/förlust (att nått händer) (Hampus)~
+  * ~Dekorera main menu (Hampus)~
   * Schackklocka (Hampus)
-  * Pre-moves (Isak)
+  * ~Pre-moves (Isak)~
   * Joina lobby som åskådare (Hampus)
-  * Ange namn när man skapar/joinar en lobby. (Hampus)
+  * ~Ange namn när man skapar/joinar en lobby. (Hampus)~
   * See captured pieces (Hampus)
-  * Resign-knapp
+  * ~Resign-knapp (Hampus)~
   * Navigera genom historik av drag (Isak)
   * Ändra färg på brädet

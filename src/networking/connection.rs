@@ -1,4 +1,4 @@
-use crate::{networking::events, piece::PieceColor};
+use crate::{networking::events, piece::piece::PieceColor};
 use rust_socketio::{Socket, SocketBuilder};
 use serde_json::json;
 pub(crate) struct Networking {
@@ -14,7 +14,7 @@ pub(crate) struct NetworkEventValidation {
     pub(crate) play_again: bool,
     pub(crate) set_color: Option<PieceColor>,
     pub(crate) resign: bool,
-    pub(crate) opponent_name: Option<String>
+    pub(crate) opponent_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
