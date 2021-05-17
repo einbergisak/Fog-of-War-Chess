@@ -49,10 +49,5 @@ pub(crate) fn generate_default_board() -> Board {
         });
     }
 
-    board[50] = Some(Piece {
-        piece_type: PieceType::Pawn(false),
-        color: White,
-        index: 50,
-    });
     board
 }
