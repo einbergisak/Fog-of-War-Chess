@@ -1,3 +1,4 @@
+
 use ggez::{
     graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     Context,
@@ -13,6 +14,10 @@ use crate::{
     piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*},
     SCREEN_HEIGHT, SCREEN_WIDTH,
 };
+use ggez::{Context, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect}};
+
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, default_board_state::generate_default_board, event_handler::BOARD_WIDTH, menu::{clickable::{Clickable, ClickableGroup, Transform}, menu_game_over::{GAME_OVER_MENU_HEIGHT, GAME_OVER_MENU_WIDTH, GAME_OVER_START_X, GAME_OVER_START_Y}, menu_state::Menu}, piece::{Board, Piece, *, PieceType::*}};
+
 
 use crate::{
     event_handler::BOARD_SIZE,
@@ -25,6 +30,7 @@ use crate::{event_handler::TILE_SIZE, networking::connection::Networking};
 pub(crate) const BACKGROUND_COLOR: (u8, u8, u8) = (57, 43, 20);
 pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
 pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
+pub(crate) const ERROR_COLOR: (u8, u8, u8) = (176, 0, 32);
 
 // Main struct
 pub(crate) struct Game {
@@ -41,11 +47,14 @@ pub(crate) struct Game {
     pub(crate) promoting_pawn: Option<Move>,
     pub(crate) available_moves: Vec<usize>,
     pub(crate) premove: Option<(Piece, usize)>, // Piece to move and destination index
+    pub(crate) winner: Option<PieceColor>,
+    pub(crate) is_admin: bool
 }
 
 impl Game {
     pub(crate) fn new(ctx: &mut Context) -> Game {
-        let mut menu = Menu::new();
+        let mut menu = Menu::new(ctx);
+        // Create button for main menu
         menu.clickables.push(Clickable {
             id: String::from("create_room_button"),
             transform: Transform {
@@ -58,6 +67,41 @@ impl Game {
             hovered: false,
             text: String::from("Create room"),
             list_item: false,
+            group: ClickableGroup::MainMenu
+        });
+
+        let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
+
+        // Resign button for in game
+        menu.clickables.push(Clickable {
+            id: String::from("resign_game_button"),
+            transform: Transform {
+                x: (board_right_edge + (SCREEN_WIDTH - board_right_edge) / 2.0 - 125.0 / 2.0) as i32,
+                y: (SCREEN_HEIGHT / 2.0 - 25.0) as i32,
+                width: 125,
+                height: 50
+            },
+            color: Color::from(ERROR_COLOR),
+            hovered: false,
+            list_item: false,
+            text: String::from("Resign"),
+            group: ClickableGroup::InGame
+        });
+
+        // Submit name button
+        menu.clickables.push(Clickable {
+            id: String::from("submit_name_button"),
+            transform: Transform {
+                x: (SCREEN_WIDTH / 2.0 - 150.0) as i32,
+                y: (SCREEN_HEIGHT * 3.0 / 4.0 - 125.0 / 2.0) as i32,
+                width: 300,
+                height: 125
+            },
+            color: Color::from(LIGHT_COLOR),
+            hovered: false,
+            list_item: false,
+            text: String::from("Submit name"),
+            group: ClickableGroup::EnterName
         });
 
         Game {
@@ -74,6 +118,8 @@ impl Game {
             promoting_pawn: None,
             available_moves: Vec::new(),
             premove: None,
+            winner: None,
+            is_admin: false
         }
     }
 
@@ -148,18 +194,18 @@ impl Game {
         // Checks if a king is being captured (a player wins)
         match &self.board[piece_dest_index] {
             Some(Piece {
-                color: White,
+                color: PieceColor::White,
                 piece_type: King(_),
                 index: _,
             }) => {
-                self.game_over(Black);
+                self.game_over(PieceColor::Black);
             }
             Some(Piece {
-                color: Black,
+                color: PieceColor::Black,
                 piece_type: King(_),
                 index: _,
             }) => {
-                self.game_over(White);
+                self.game_over(PieceColor::White);
             }
             _ => {}
         }
@@ -181,16 +227,16 @@ impl Game {
                 let (x, y) = piece.get_pos();
 
                 // If a pawn is to move diagonally without capturing, it must be attempting en passant
-                if ((*color == White
+                if ((*color == PieceColor::White
                     && (piece_dest_index == translate_to_index(x - 1, y + 1)
                         || piece_dest_index == translate_to_index(x + 1, y + 1)))
-                    || (*color == Black
+                    || (*color == PieceColor::Black
                         && (piece_dest_index == translate_to_index(x - 1, y - 1)
                             || piece_dest_index == translate_to_index(x + 1, y - 1))))
                     && self.board[piece_dest_index].is_none()
                 {
                     // Captures the piece behind its destination tile
-                    let one_square_back = if let White = piece.color {
+                    let one_square_back = if let PieceColor::White = piece.color {
                         piece_dest_index - BOARD_SIZE
                     } else {
                         piece_dest_index + BOARD_SIZE
@@ -327,29 +373,113 @@ impl Game {
         self.move_history.push(move_);
     }
 
-    fn game_over(&mut self, winning_color: piece::PieceColor) {
+    pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
         match winning_color {
-            White => {
+            PieceColor::White => {
+                self.winner = Some(PieceColor::White);
                 println!("Black lost, white won!");
-                todo!()
             }
-            Black => {
+            PieceColor::Black => {
+                self.winner = Some(PieceColor::Black);
                 println!("White lost, black won!");
-                todo!()
             }
         }
+
+        self.menu.clickables.push(Clickable {
+            transform: Transform {
+                x: (GAME_OVER_START_X + 100.0) as i32,
+                y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
+                width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+            },
+            id: String::from("play_again"),
+            text: String::from("Play again"),
+            list_item: false,
+            hovered: false,
+            color: Color::from(LIGHT_COLOR),
+            group: ClickableGroup::GameOverMenu
+        });
+
+        self.menu.clickables.push(Clickable {
+            transform: Transform {
+                x: (GAME_OVER_START_X + GAME_OVER_MENU_WIDTH - 100.0 - GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                y: (GAME_OVER_START_Y + GAME_OVER_MENU_HEIGHT - 100.0) as i32,
+                width: (GAME_OVER_MENU_WIDTH * 0.3) as i32,
+                height: (GAME_OVER_MENU_HEIGHT * 0.1) as i32
+            },
+            id: String::from("goto_main_menu"),
+            text: String::from("Leave"),
+            list_item: false,
+            hovered: false,
+            color: Color::from(LIGHT_COLOR),
+            group: ClickableGroup::GameOverMenu
+        });
+
+        // Prevent the current buttons from being cliked next time
+        // a button is clicked
+        self.menu.clear_clickable_hovers();
     }
 
-    pub(crate) fn button_parsing(&mut self) {
-        for i in 0..self.menu.clickables.len() {
-            if self.menu.clickables[i].hovered {
+    pub(crate) fn reset_game(&mut self) {
+        self.board = generate_default_board();
+        self.winner = None;
+        self.active_turn = false;
+        self.grabbed_piece = None;
+    }
+
+    #[allow(unused_assignments)]
+    pub(crate) fn button_parsing(&mut self, allowed_group: Vec<ClickableGroup>) {
+        let read_state = STATE.get().read().unwrap().clone();
+
+        for mut i in 0..self.menu.clickables.len() {
+
+            if self.menu.clickables[i].hovered && allowed_group.contains(&self.menu.clickables[i].group) {
+
                 match &self.menu.clickables[i].id[..] {
                     "create_room_button" => {
                         self.connection.send("create_room", "");
                     }
-                    id => {
-                        println!("Join room: {}", id);
-                        self.connection.send("join_room", id)
+                    "play_again" => {
+                        self.reset_game();
+                        self.playing_as_white = !self.playing_as_white;
+                        self.active_turn = self.playing_as_white;
+                        self.connection.send("play_again", "");
+                    }
+                    "goto_main_menu" => {
+                        STATE.get().write().unwrap().room_id = None;
+                        self.menu.visible = true;
+                        self.reset_game();
+                        self.connection.send("opponent_leave_lobby", "");
+                        self.connection.send("list_rooms", "");
+                    }
+                    "resign_game_button" => {
+                        let winner = if self.playing_as_white { PieceColor::Black } else { PieceColor::White };
+                        self.game_over(winner);
+                        self.connection.send("resign", "");
+                    }
+                    "submit_name_button" => {
+                        if read_state.name.len() > 0 {
+                            STATE.get().write().unwrap().entering_name = false;
+                            self.connection.send("set_name", &read_state.name);
+
+                            // Delete the button after it has been used
+                            let index = self.menu.clickables.iter().position(|current| current.id == String::from("submit_name_button")).unwrap();
+                            self.menu.clickables.remove(index);
+
+                            i -= 1;
+                        }
+                    }
+                    id if self.menu.clickables[i].list_item => {
+                        if id.len() != 4 {
+                            println!("Wrong formatted id: {}", id);
+                        } else {
+                            println!("Join room: {}", id);
+                            STATE.get().write().unwrap().room_id = Some(String::from(id));
+                            self.connection.send("join_room", id);
+                        }
+                    }
+                    data => {
+                        println!("Unused button click {}", data);
                     }
                 }
             }

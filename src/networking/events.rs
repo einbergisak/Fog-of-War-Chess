@@ -1,6 +1,6 @@
 use rust_socketio::{Payload, Socket};
 
-use crate::{move_struct::Move, Room, STATE};
+use crate::{Room, STATE, move_struct::Move, piece::PieceColor};
 
 pub(crate) fn on_opponent(payload: Payload, _: Socket) {
     let app_state = STATE.get();
@@ -57,6 +57,9 @@ pub(crate) fn on_join_room(payload: Payload, _: Socket) {
             println!("join room: {}", str);
             if str == "true" {
                 STATE.get().write().unwrap().event_validation.join_room = true;
+            } else {
+                // If we failed to join the lobby we remove the room id again
+                STATE.get().write().unwrap().room_id = None;
             }
         }
         Payload::Binary(_) => {}
@@ -77,9 +80,9 @@ pub(crate) fn on_create_room(payload: Payload, _: Socket) {
 }
 
 pub(crate) fn on_list_room(payload: Payload, _: Socket) {
-    println!("Incoming package");
     match payload {
         Payload::String(str) => {
+            println!("Got new list rooms");
             let incoming: Vec<char> = str.chars().collect();
             let mut rooms: Vec<Room> = Vec::new();
 
@@ -117,6 +120,48 @@ pub(crate) fn on_list_room(payload: Payload, _: Socket) {
 
             STATE.get().write().unwrap().lobbies = rooms;
             STATE.get().write().unwrap().lobby_sync += 1;
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_play_again(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(_) => {
+            println!("Received play again, changing STATE!");
+            STATE.get().write().unwrap().event_validation.play_again = true;
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_set_opponent_color(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(mut str) => {
+            str = str.replace("\"", "");
+            if str == "white" {
+                STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::White);
+            } else {
+                STATE.get().write().unwrap().event_validation.set_color = Some(PieceColor::Black);
+            }
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_resign(payload: Payload, _: Socket) {
+match payload {
+        Payload::String(_) => {
+            STATE.get().write().unwrap().event_validation.resign = true;
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_get_opponent_name(payload: Payload, _: Socket) {
+    match payload {
+        Payload::String(opponent_name) => {
+            STATE.get().write().unwrap().event_validation.opponent_name = Some(opponent_name.replace("\"", ""));
         }
         Payload::Binary(_) => {}
     }
