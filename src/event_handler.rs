@@ -1,12 +1,11 @@
 use ggez::{
-    event::{EventHandler, KeyCode, KeyMods, MouseButton},
+    event::{EventHandler, MouseButton},
     graphics,
     nalgebra::Point2,
     Context, GameResult,
 };
 
 use crate::{
-    enter_name_screen::on_key_down,
     game::{BACKGROUND_COLOR, LIGHT_COLOR},
     menu::clickable::ClickableGroup,
     render_utilities::{flip_index, translate_to_index},
@@ -449,13 +448,20 @@ impl EventHandler for Game {
         self.menu.on_mouse_wheel(ctx, y);
     }
 
-    fn key_down_event(
-        &mut self,
-        _ctx: &mut Context,
-        keycode: KeyCode,
-        keymods: KeyMods,
-        repeat: bool,
-    ) {
-        on_key_down(keycode, keymods, repeat);
+    fn text_input_event(&mut self, _ctx: &mut Context, character: char) {
+        // Name input when the game is launched
+        if STATE.get().read().unwrap().entering_name {
+            let mut name = STATE.get().read().unwrap().name.clone();
+
+            // 8u8 is the ASCII code for backspace
+            if character != (8u8 as char) {
+                name.push(character);
+            } else {
+                name.pop();
+            }
+            if name.len() <= 20 {
+                STATE.get().write().unwrap().name = String::from(name);
+            }
+        }
     }
 }
