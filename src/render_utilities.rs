@@ -174,7 +174,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
 
     // Highlights the source- and destination tile of the previous move (if the moves are visible to you)
     if let Some(m) = game.move_history.last() {
-        // Source
+        // Source tile
         if game.available_moves.contains(&m.piece.index) {
             let dp_source_tile = DrawParam::default()
                 .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
@@ -191,7 +191,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
             movement_indication_batch.add(dp_source_tile);
         }
 
-        // Destination
+        // Destination tile
         if game.available_moves.contains(&m.piece_dest_index) {
             let dp_dest_tile = DrawParam::default()
                 .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
@@ -209,7 +209,9 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
         }
     }
 
+    // Renders premoves
     if let Some((piece, piece_dest_index)) = game.premove {
+        // Source tile
         let dp_source_tile = DrawParam::default()
             .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
             .dest({
@@ -224,6 +226,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
             });
         movement_indication_batch.add(dp_source_tile);
 
+        // Destination tile
         let dp_dest_tile = DrawParam::default()
             .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
             .dest({
@@ -238,6 +241,33 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
             });
         movement_indication_batch.add(dp_dest_tile);
     }
+
+    // Highlights the square underneath your grabbed piece to indicate where it will be placed if dropped.
+    if let Some(piece) = &game.grabbed_piece{
+
+        let (cursor_x, cursor_y) = (
+            ggez::input::mouse::position(ctx).x,
+            ggez::input::mouse::position(ctx).y,
+        );
+
+        let x_tile = ((cursor_x - BOARD_ORIGO_X) / TILE_SIZE as f32) as usize;
+        let y_tile = ((cursor_y - BOARD_ORIGO_Y) / TILE_SIZE as f32) as usize;
+
+        let mut hovered_index = translate_to_index(x_tile, y_tile);
+
+        if game.playing_as_white {
+            hovered_index = flip_index(hovered_index);
+        }
+
+        // Only highlights the square if it is a valid move
+        if get_valid_move_indices(game, piece).contains(&hovered_index){
+            let dest_rect = Point2::new(x_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X, y_tile as f32*TILE_SIZE as f32 + BOARD_ORIGO_Y);
+            let src_rect = Rect::new(3.0/4.0, 0.0, 1.0/4.0, 1.0);
+            let dp = DrawParam::default().src(src_rect).dest(dest_rect).color(graphics::Color::from_rgba(100, 200, 100, 250));
+            movement_indication_batch.add(dp);
+        }
+    }
+
     graphics::draw(
         ctx,
         &movement_indication_batch,
