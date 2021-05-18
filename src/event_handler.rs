@@ -443,6 +443,8 @@ impl EventHandler for Game {
         keymods: KeyMods,
         repeat: bool,
     ) {
-        on_key_down(keycode, keymods, repeat);
+        if STATE.get().read().unwrap().entering_name {
+            on_key_down(keycode, keymods, repeat);
+        }
     }
 }
