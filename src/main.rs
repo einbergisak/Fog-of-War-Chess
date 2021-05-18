@@ -15,6 +15,7 @@ mod default_board_state;
 mod event_handler;
 mod game;
 mod move_struct;
+mod time;
 mod piece {
     pub mod piece;
     pub mod piece_movement;
@@ -43,6 +44,7 @@ pub(crate) struct State {
     pub(crate) event_validation: NetworkEventValidation,
     pub(crate) incoming_move: Option<Move>,
     pub(crate) room_id: Option<String>,
+    pub(crate) opponent_online: bool
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -67,6 +69,7 @@ fn main() {
             opponent_name: None,
         },
         room_id: None,
+        opponent_online: false
     };
     STATE.set(RwLock::new(app_state));
 

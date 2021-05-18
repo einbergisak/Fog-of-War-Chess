@@ -1,9 +1,4 @@
-use ggez::{
-    event::{EventHandler, KeyCode, KeyMods, MouseButton},
-    graphics,
-    nalgebra::Point2,
-    Context, GameResult,
-};
+use ggez::{Context, GameResult, event::{EventHandler, KeyCode, KeyMods, MouseButton}, graphics, nalgebra::Point2, timer};
 
 use crate::{
     enter_name_screen::on_key_down,
@@ -28,6 +23,9 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         while ggez::timer::check_update_time(ctx, 60) {
+
+            self.run_clock();
+
             let state_read = STATE.get().read().unwrap().clone();
 
             let incoming_move = state_read.incoming_move;
@@ -78,6 +76,7 @@ impl EventHandler for Game {
                     // Ask server for opponent name
                     self.connection.send("get_opponent_name", "");
                     self.update_available_moves();
+                    STATE.get().write().unwrap().opponent_online = true;
                     STATE.get().write().unwrap().event_validation.join_room = false;
                 }
 
@@ -146,6 +145,11 @@ impl EventHandler for Game {
                 STATE.get().write().unwrap().event_validation.resign = false;
             }
         }
+
+        // Let the loop sleep until read to continue
+        // Prevents the program from taking up
+        // 100% CPU power if not neccessary
+        timer::yield_now();
         Ok(())
     }
 
@@ -207,32 +211,23 @@ impl EventHandler for Game {
         piece::promotion::render_promotion_interface(&self, ctx)?;
 
         // Draw opponent name
+        let mut display_name = String::from("Awaiting player...");
         let opponent_name = read_state.event_validation.opponent_name.clone();
         if let Some(name) = opponent_name {
-            self.menu.draw_text(
-                ctx,
-                name,
-                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
-                (
-                    BOARD_WIDTH as f32,
-                    40.0, // Same height as the room code text
-                ),
-                graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left,
-            );
-        } else {
-            self.menu.draw_text(
-                ctx,
-                String::from("Awaiting player..."),
-                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
-                (
-                    BOARD_WIDTH as f32,
-                    40.0, // Same height as the room code text
-                ),
-                graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left,
-            );
+            display_name = name;
         }
+
+        self.menu.draw_text(
+            ctx,
+            display_name,
+            (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
+            (
+                BOARD_WIDTH as f32,
+                40.0, // Same height as the room code text
+            ),
+            graphics::Color::from(LIGHT_COLOR),
+            graphics::Align::Left,
+        );
 
         // Draw name
         let name = read_state.name.clone();
@@ -247,6 +242,8 @@ impl EventHandler for Game {
             graphics::Color::from(LIGHT_COLOR),
             graphics::Align::Left,
         );
+
+        self.render_time(ctx);
 
         self.menu.draw_clickables(ctx, vec![ClickableGroup::InGame]);
 
@@ -285,6 +282,11 @@ impl EventHandler for Game {
                 }
 
                 //------------------------------------------------------
+
+                // If there is no opponent we cannot make moves
+                if !read_state.opponent_online {
+                    return
+                }
 
                 // Cursor out of bounds checking
                 if x > BOARD_ORIGO_X + BOARD_WIDTH as f32

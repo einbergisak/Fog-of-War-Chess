@@ -3,16 +3,10 @@ use ggez::{
     Context,
 };
 
-use crate::{
-    default_board_state::generate_default_board,
-    menu::{
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, default_board_state::generate_default_board, menu::{
         clickable::{Clickable, Transform},
         menu_state::Menu,
-    },
-    move_struct::MoveType,
-    piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *},
-    SCREEN_HEIGHT, SCREEN_WIDTH,
-};
+    }, move_struct::MoveType, piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *}, time::Time};
 
 use crate::{
     event_handler::BOARD_WIDTH,
@@ -55,6 +49,8 @@ pub(crate) struct Game {
     pub(crate) premove: Option<(Piece, usize)>, // Piece to move and destination index
     pub(crate) winner: Option<PieceColor>,
     pub(crate) is_admin: bool,
+    pub(crate) time: Time,
+    pub(crate) game_active: bool
 }
 
 impl Game {
@@ -127,7 +123,25 @@ impl Game {
             premove: None,
             winner: None,
             is_admin: false,
+            time: Time {
+                clock: 0,
+                time_left: 0,
+                opponent_time_left: 0,
+                total_time: 5
+            },
+            game_active: false
         }
+    }
+
+    // Start a game and start the clocks
+    fn start_game(&mut self) {
+        // Cannot start game while in progress
+        if self.game_active || self.winner.is_some() {
+            return;    
+        }
+        self.time.time_left = self.time.total_time;
+        self.time.opponent_time_left = self.time.total_time;
+        self.game_active = true;
     }
 
     fn get_board_mesh(ctx: &mut Context) -> Mesh {
@@ -190,6 +204,9 @@ impl Game {
             });
             // Your turn is over once you've made a move
             self.active_turn = !self.active_turn;
+            if !self.game_active {
+                self.start_game();
+            }
             self.update_available_moves();
         } else {
             println!("Moving! active_turn: {}", self.active_turn);
@@ -377,10 +394,16 @@ impl Game {
             );
         }
         self.active_turn = !self.active_turn;
+        if !self.game_active {
+            self.start_game();
+        }
         self.move_history.push(move_);
     }
 
     pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
+
+        self.game_active = false;
+
         match winning_color {
             PieceColor::White => {
                 self.winner = Some(PieceColor::White);

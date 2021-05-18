@@ -24,6 +24,8 @@ pub(crate) fn on_opponent_connect(payload: Payload, _: Socket) {
                 .unwrap()
                 .event_validation
                 .opponent_connect = true;
+
+            STATE.get().write().unwrap().opponent_online = true;
         }
         Payload::Binary(_) => {}
     }
@@ -39,6 +41,8 @@ pub(crate) fn on_opponent_disconnect(payload: Payload, _: Socket) {
                 .unwrap()
                 .event_validation
                 .opponent_disconnect = true;
+
+            STATE.get().write().unwrap().opponent_online = false;
         }
         Payload::Binary(_) => {}
     }
