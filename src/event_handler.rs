@@ -68,6 +68,7 @@ impl EventHandler for Game {
                     STATE.get().write().unwrap().event_validation.create_room = false;
                 }
 
+                // This user successfully joined the room
                 if event_validation.join_room {
                     self.menu.visible = false;
 
@@ -90,6 +91,7 @@ impl EventHandler for Game {
                 }
             }
 
+            // A new connection joined the game
             if event_validation.opponent_connect {
                 println!("Opponent connect parsed!");
                 // If the user is still in end game screen we force him into the game
@@ -104,7 +106,11 @@ impl EventHandler for Game {
                 } else {
                     String::from("white")
                 };
+                // Tell the new connection which color it should have
+                // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
+                self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
+                
                 STATE
                     .get()
                     .write()
@@ -144,6 +150,17 @@ impl EventHandler for Game {
                 self.game_over(winner);
                 STATE.get().write().unwrap().event_validation.resign = false;
             }
+
+            match event_validation.time {
+                Some((total_time, increment)) => {
+                    println!("TOTAL TIME");
+                    self.time.time_set = true;
+                    self.time.total_time = total_time;
+                    self.time.increment = increment;
+                    STATE.get().write().unwrap().event_validation.time = None;
+                }
+                None => {}
+            }
         }
 
         // Let the loop sleep until read to continue
@@ -182,6 +199,11 @@ impl EventHandler for Game {
         // If menu is active we don't bother showing the rest of the game
         if self.menu.visible {
             self.menu.render(ctx);
+            return graphics::present(ctx);
+        }
+
+        if !self.time.time_set {
+            self.render_time_interface(ctx);
             return graphics::present(ctx);
         }
 
@@ -271,13 +293,19 @@ impl EventHandler for Game {
                     parsing_groups.push(ClickableGroup::MainMenuList);
                 } else if self.winner.is_some() {
                     parsing_groups.push(ClickableGroup::GameOverMenu);
-                } else {
+                } else if !self.time.time_set {
+                    parsing_groups.push(ClickableGroup::TimeSelection);
+                }
+                else {
                     parsing_groups.push(ClickableGroup::InGame);
                 }
                 // Button logic
                 self.button_parsing(parsing_groups);
 
-                if self.menu.visible || self.winner.is_some() {
+                if read_state.entering_name ||
+                    self.menu.visible || 
+                    self.winner.is_some() || 
+                    !self.time.time_set {
                     return;
                 }
 
@@ -363,7 +391,7 @@ impl EventHandler for Game {
         match button {
             MouseButton::Left => {
                 // UI logic
-                if self.menu.visible || self.winner.is_some() {
+                if self.menu.visible || self.winner.is_some() || !self.time.time_set {
                     return;
                 }
 
@@ -413,25 +441,25 @@ impl EventHandler for Game {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
-        let mut active_groups: Vec<ClickableGroup> = Vec::new();
+        let read_state = STATE.get().read().unwrap();
         // Entering name state
-        if STATE.get().read().unwrap().entering_name {
-            active_groups.push(ClickableGroup::EnterName);
+        let mut parsing_groups: Vec<ClickableGroup> = Vec::new();
+        if read_state.entering_name {
+            parsing_groups.push(ClickableGroup::EnterName);
         }
-        // End game screen
-        else if self.winner.is_some() {
-            active_groups.push(ClickableGroup::GameOverMenu);
+        if self.menu.visible {
+            parsing_groups.push(ClickableGroup::MainMenu);
+            parsing_groups.push(ClickableGroup::MainMenuList);
+        } else if self.winner.is_some() {
+            parsing_groups.push(ClickableGroup::GameOverMenu);
+        } else if !self.time.time_set {
+            parsing_groups.push(ClickableGroup::TimeSelection);
         }
-        // Main menu screen
-        else if self.menu.visible {
-            active_groups.push(ClickableGroup::MainMenu);
-            active_groups.push(ClickableGroup::MainMenuList);
-        } else {
-            // In game
-            active_groups.push(ClickableGroup::InGame);
+        else {
+            parsing_groups.push(ClickableGroup::InGame);
         }
 
-        self.menu.on_mouse_move(ctx, x, y, active_groups);
+        self.menu.on_mouse_move(ctx, x, y, parsing_groups);
     }
 
     fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {

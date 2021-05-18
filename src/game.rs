@@ -3,13 +3,12 @@ use ggez::{
     Context,
 };
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, default_board_state::generate_default_board, menu::{
+use crate::{default_board_state::generate_default_board, menu::{
         clickable::{Clickable, Transform},
         menu_state::Menu,
     }, move_struct::MoveType, piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *}, time::Time};
 
 use crate::{
-    event_handler::BOARD_WIDTH,
     menu::{
         clickable::ClickableGroup,
         menu_game_over::{
@@ -57,55 +56,7 @@ impl Game {
     pub(crate) fn new(ctx: &mut Context) -> Game {
         let mut menu = Menu::new(ctx);
         // Create button for main menu
-        menu.clickables.push(Clickable {
-            id: String::from("create_room_button"),
-            transform: Transform {
-                x: SCREEN_WIDTH as i32 / 4 - 500 / 2,
-                y: SCREEN_HEIGHT as i32 / 2 - 200 / 2,
-                width: 500,
-                height: 200,
-            },
-            color: Color::from(LIGHT_COLOR),
-            hovered: false,
-            text: String::from("Create room"),
-            list_item: false,
-            group: ClickableGroup::MainMenu,
-        });
-
-        let board_right_edge = SCREEN_WIDTH / 2.0 + (BOARD_WIDTH / 2) as f32;
-
-        // Resign button for in game
-        menu.clickables.push(Clickable {
-            id: String::from("resign_game_button"),
-            transform: Transform {
-                x: (board_right_edge + (SCREEN_WIDTH - board_right_edge) / 2.0 - 125.0 / 2.0)
-                    as i32,
-                y: (SCREEN_HEIGHT / 2.0 - 25.0) as i32,
-                width: 125,
-                height: 50,
-            },
-            color: Color::from(ERROR_COLOR),
-            hovered: false,
-            list_item: false,
-            text: String::from("Resign"),
-            group: ClickableGroup::InGame,
-        });
-
-        // Submit name button
-        menu.clickables.push(Clickable {
-            id: String::from("submit_name_button"),
-            transform: Transform {
-                x: (SCREEN_WIDTH / 2.0 - 150.0) as i32,
-                y: (SCREEN_HEIGHT * 3.0 / 4.0 - 125.0 / 2.0) as i32,
-                width: 300,
-                height: 125,
-            },
-            color: Color::from(LIGHT_COLOR),
-            hovered: false,
-            list_item: false,
-            text: String::from("Submit name"),
-            group: ClickableGroup::EnterName,
-        });
+        menu.create_clickables();
 
         Game {
             board: generate_default_board(), // Load/create resources such as images here.
@@ -124,10 +75,12 @@ impl Game {
             winner: None,
             is_admin: false,
             time: Time {
+                time_set: false,
                 clock: 0,
                 time_left: 0,
                 opponent_time_left: 0,
-                total_time: 5
+                total_time: 5 * 60,
+                increment: 0
             },
             game_active: false
         }
@@ -466,7 +419,7 @@ impl Game {
     pub(crate) fn button_parsing(&mut self, allowed_group: Vec<ClickableGroup>) {
         let read_state = STATE.get().read().unwrap().clone();
 
-        for mut i in 0..self.menu.clickables.len() {
+        for i in 0..self.menu.clickables.len() {
             if self.menu.clickables[i].hovered
                 && allowed_group.contains(&self.menu.clickables[i].group)
             {
@@ -513,8 +466,30 @@ impl Game {
                                 })
                                 .unwrap();
                             self.menu.clickables.remove(index);
-
-                            i -= 1;
+                        }
+                    }
+                    "minute_plus_1" => { self.modify_time(1 * 60, true, false); }
+                    "minute_plus_5" => { self.modify_time(5 * 60, true, false); }
+                    "minute_plus_10" => { self.modify_time(10 * 60, true, false); }
+                    "minute_minus_1" => { self.modify_time(1 * 60, false, false); }
+                    "minute_minus_5" => { self.modify_time(5 * 60, false, false); }
+                    "minute_minus_10" => { self.modify_time(10 * 60, false, false); }
+                    
+                    "second_plus_15" => { self.modify_time(15, true, false); }
+                    "second_minus_15" => { self.modify_time(15, false, false); }
+                    
+                    "increment_plus_1" => { self.modify_time(1, true, true); }
+                    "increment_plus_5" => { self.modify_time(5, true, true); }
+                    "increment_plus_10" => { self.modify_time(10, true, true); }
+                    "increment_minus_1" => { self.modify_time(1, false, true); }
+                    "increment_minus_5" => { self.modify_time(5, false, true); }
+                    "increment_minus_10" => { self.modify_time(10, false, true); }
+                    "finish_time_start_game" => {
+                        // Only admin has permission to make changes to the time
+                        if self.is_admin {
+                            self.time.time_set = true;
+                            self.time.time_left = self.time.total_time;
+                            self.time.opponent_time_left = self.time.total_time;   
                         }
                     }
                     id if self.menu.clickables[i].list_item => {
@@ -530,6 +505,7 @@ impl Game {
                         println!("Unused button click {}", data);
                     }
                 }
+                break;
             }
         }
     }
