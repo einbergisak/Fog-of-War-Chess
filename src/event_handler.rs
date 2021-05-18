@@ -288,7 +288,7 @@ impl EventHandler for Game {
                 if read_state.entering_name {
                     parsing_groups.push(ClickableGroup::EnterName);
                 }
-                if self.menu.visible {
+                else if self.menu.visible {
                     parsing_groups.push(ClickableGroup::MainMenu);
                     parsing_groups.push(ClickableGroup::MainMenuList);
                 } else if self.winner.is_some() {
@@ -447,7 +447,7 @@ impl EventHandler for Game {
         if read_state.entering_name {
             parsing_groups.push(ClickableGroup::EnterName);
         }
-        if self.menu.visible {
+        else if self.menu.visible {
             parsing_groups.push(ClickableGroup::MainMenu);
             parsing_groups.push(ClickableGroup::MainMenuList);
         } else if self.winner.is_some() {
