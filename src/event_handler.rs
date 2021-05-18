@@ -153,10 +153,12 @@ impl EventHandler for Game {
 
             match event_validation.time {
                 Some((total_time, increment)) => {
-                    println!("TOTAL TIME");
                     self.time.time_set = true;
                     self.time.total_time = total_time;
                     self.time.increment = increment;
+
+                    self.time.time_left = self.time.total_time;
+                    self.time.opponent_time_left = self.time.total_time;
                     STATE.get().write().unwrap().event_validation.time = None;
                 }
                 None => {}

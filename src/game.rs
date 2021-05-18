@@ -439,6 +439,7 @@ impl Game {
                         STATE.get().write().unwrap().room_id = None;
                         self.menu.visible = true;
                         self.reset_game();
+                        self.time.time_set = false;
                         self.connection.send("opponent_leave_lobby", "");
                         self.connection.send("list_rooms", "");
                     }
