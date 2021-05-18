@@ -490,6 +490,11 @@ impl Game {
                             self.time.time_set = true;
                             self.time.time_left = self.time.total_time;
                             self.time.opponent_time_left = self.time.total_time;   
+
+                            if read_state.opponent_online {
+                                // If the client is already connected we send the data afterwards
+                                self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
+                            }
                         }
                     }
                     id if self.menu.clickables[i].list_item => {

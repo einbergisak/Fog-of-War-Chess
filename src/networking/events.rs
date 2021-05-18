@@ -179,9 +179,7 @@ pub(crate) fn on_set_clock_time(payload: Payload, _: Socket) {
             let mut split = data.split(":");
             let total_time = split.next().unwrap().parse::<i32>().unwrap();
             let increment = split.next().unwrap().parse::<i32>().unwrap();
-
-            println!("CLOCK received {} {}", total_time, increment);
-
+            
             STATE.get().write().unwrap().event_validation.time = Some((total_time, increment));
         }
         Payload::Binary(_) => {}
