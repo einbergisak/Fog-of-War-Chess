@@ -1,4 +1,4 @@
-use ggez::{Context, graphics};
+use ggez::{Context, graphics::{self, DrawMode}};
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, STATE, event_handler::{BOARD_ORIGO_X, BOARD_ORIGO_Y, BOARD_WIDTH}, game::{DARK_COLOR, Game, LIGHT_COLOR}, menu::clickable::ClickableGroup, piece::piece::PieceColor};
 
@@ -80,13 +80,32 @@ impl Game {
 
 	pub(crate) fn render_time(&mut self, ctx: &mut Context) {
 
+		if !self.active_turn {
+			match graphics::Mesh::new_rectangle(
+				ctx, 
+				DrawMode::fill(), 
+				graphics::Rect::new(
+					BOARD_ORIGO_X + BOARD_WIDTH as f32 + 30.0, 
+					BOARD_ORIGO_Y, 
+					(SCREEN_WIDTH - BOARD_WIDTH as f32) / 2.0 - 60.0, 
+					80.0
+				),
+				graphics::Color::from(DARK_COLOR) 
+			) {
+				Ok(drawable) => {
+					graphics::draw(ctx, &drawable, graphics::DrawParam::default()).expect("Could not render your turn selection");
+				}
+				Err(_) => {}
+			}
+		}
+
 		// Opponent time left
 		self.menu.draw_text(
 			ctx, 
 			Game::format_time(self.time.opponent_time_left), 
 			(
 				BOARD_ORIGO_X + BOARD_WIDTH as f32,
-				BOARD_ORIGO_Y
+				BOARD_ORIGO_Y + 20.0
 			), 
 			(
 				(SCREEN_WIDTH - BOARD_WIDTH as f32) / 2.0,
@@ -96,13 +115,32 @@ impl Game {
 			graphics::Align::Center
 		);
 
+		if self.active_turn {
+			match graphics::Mesh::new_rectangle(
+				ctx, 
+				DrawMode::fill(), 
+				graphics::Rect::new(
+					BOARD_ORIGO_X + BOARD_WIDTH as f32 + 30.0, 
+					BOARD_ORIGO_Y + BOARD_WIDTH as f32 - 80.0, 
+					(SCREEN_WIDTH - BOARD_WIDTH as f32) / 2.0 - 60.0, 
+					80.0
+				),
+				graphics::Color::from(DARK_COLOR) 
+			) {
+				Ok(drawable) => {
+					graphics::draw(ctx, &drawable, graphics::DrawParam::default()).expect("Could not render your turn selection");
+				}
+				Err(_) => {}
+			}
+		}
+
 		// User time left
 		self.menu.draw_text(
 			ctx, 
 			Game::format_time(self.time.time_left), 
 			(
 				BOARD_ORIGO_X + BOARD_WIDTH as f32,
-				BOARD_ORIGO_Y + BOARD_WIDTH as f32 - 40.0
+				BOARD_ORIGO_Y + BOARD_WIDTH as f32 - 60.0
 			), 
 			(
 				(SCREEN_WIDTH - BOARD_WIDTH as f32) / 2.0,
