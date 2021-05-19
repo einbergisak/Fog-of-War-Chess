@@ -29,9 +29,6 @@ impl Networking {
         let socket = SocketBuilder::new(/* "http://chess.datasektionen.link" */ "http://localhost:8080")
             .set_namespace("/")
             .expect("illegal namespace")
-            .on("list_rooms_res", |payload, socket| {
-                events::on_list_rooms(payload, socket)
-            })
             .on("join_room_res", |payload, socket| {
                 events::on_join_room(payload, socket)
             })

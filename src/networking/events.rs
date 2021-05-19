@@ -33,8 +33,7 @@ pub(crate) fn on_opponent_connect(payload: Payload, _: Socket) {
 
 pub(crate) fn on_opponent_disconnect(payload: Payload, _: Socket) {
     match payload {
-        Payload::String(str) => {
-            println!("opponent disconnected: {}", str);
+        Payload::String(_) => {
             STATE
                 .get()
                 .write()
@@ -44,13 +43,6 @@ pub(crate) fn on_opponent_disconnect(payload: Payload, _: Socket) {
 
             STATE.get().write().unwrap().opponent_online = false;
         }
-        Payload::Binary(_) => {}
-    }
-}
-
-pub(crate) fn on_list_rooms(payload: Payload, _: Socket) {
-    match payload {
-        Payload::String(str) => println!("rooms: {}", str),
         Payload::Binary(_) => {}
     }
 }

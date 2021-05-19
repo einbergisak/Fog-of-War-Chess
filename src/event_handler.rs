@@ -1,12 +1,6 @@
 use ggez::{Context, GameResult, event::{EventHandler, KeyCode, KeyMods, MouseButton}, graphics, nalgebra::Point2, timer};
 
-use crate::{
-    enter_name_screen::on_key_down,
-    game::{BACKGROUND_COLOR, LIGHT_COLOR},
-    menu::clickable::ClickableGroup,
-    render_utilities::{flip_index, translate_to_index},
-    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
-};
+use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, enter_name_screen::on_key_down, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup, piece::piece::PieceColor, render_utilities::{flip_index, translate_to_index}};
 
 use crate::{
     piece::{self, piece::PieceColor::*},
@@ -120,6 +114,13 @@ impl EventHandler for Game {
             }
 
             if event_validation.opponent_disconnect {
+                if self.playing_as_white {
+                    self.game_over(PieceColor::White);
+                }
+                else {
+                    self.game_over(PieceColor::White);
+                }
+
                 STATE
                     .get()
                     .write()
