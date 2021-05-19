@@ -155,6 +155,7 @@ impl Game {
                 captured_piece,
                 move_type: Promotion(piece_type),
             });
+            self.perform_time_increment();
             // Your turn is over once you've made a move
             self.active_turn = !self.active_turn;
             if !self.game_active {
@@ -346,6 +347,7 @@ impl Game {
                 self.grabbed_piece, self.selected_piece
             );
         }
+        self.perform_time_increment();
         self.active_turn = !self.active_turn;
         if !self.game_active {
             self.start_game();

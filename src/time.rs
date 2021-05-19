@@ -184,6 +184,14 @@ impl Game {
 		}
 	}
 
+	pub(crate) fn perform_time_increment(&mut self) {
+		if self.active_turn {
+			self.time.time_left += self.time.increment;
+		} else {
+			self.time.opponent_time_left += self.time.increment;
+		}
+	}
+
 	pub(crate) fn render_time_interface(&mut self, ctx: &mut Context) {
 		let minutes = self.time.total_time / 60;
 		let seconds = self.time.total_time % 60;
