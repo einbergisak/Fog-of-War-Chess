@@ -49,5 +49,11 @@ pub(crate) fn generate_default_board() -> Board {
         });
     }
 
+    board[44] = Some(Piece {
+        piece_type: PieceType::Knight,
+        color: White,
+        index: 44,
+    });
+
     board
 }

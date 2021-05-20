@@ -24,6 +24,8 @@ pub(crate) fn on_opponent_connect(payload: Payload, _: Socket) {
                 .unwrap()
                 .event_validation
                 .opponent_connect = true;
+
+            STATE.get().write().unwrap().opponent_online = true;
         }
         Payload::Binary(_) => {}
     }
@@ -31,22 +33,16 @@ pub(crate) fn on_opponent_connect(payload: Payload, _: Socket) {
 
 pub(crate) fn on_opponent_disconnect(payload: Payload, _: Socket) {
     match payload {
-        Payload::String(str) => {
-            println!("opponent disconnected: {}", str);
+        Payload::String(_) => {
             STATE
                 .get()
                 .write()
                 .unwrap()
                 .event_validation
                 .opponent_disconnect = true;
-        }
-        Payload::Binary(_) => {}
-    }
-}
 
-pub(crate) fn on_list_rooms(payload: Payload, _: Socket) {
-    match payload {
-        Payload::String(str) => println!("rooms: {}", str),
+            STATE.get().write().unwrap().opponent_online = false;
+        }
         Payload::Binary(_) => {}
     }
 }
@@ -163,6 +159,20 @@ pub(crate) fn on_get_opponent_name(payload: Payload, _: Socket) {
         Payload::String(opponent_name) => {
             STATE.get().write().unwrap().event_validation.opponent_name =
                 Some(opponent_name.replace("\"", ""));
+        }
+        Payload::Binary(_) => {}
+    }
+}
+
+pub(crate) fn on_set_clock_time(payload: Payload, _: Socket) {
+    match payload {
+        Payload::String(package) => {
+            let data = package.replace("\"", "");
+            let mut split = data.split(":");
+            let total_time = split.next().unwrap().parse::<i32>().unwrap();
+            let increment = split.next().unwrap().parse::<i32>().unwrap();
+            
+            STATE.get().write().unwrap().event_validation.time = Some((total_time, increment));
         }
         Payload::Binary(_) => {}
     }
