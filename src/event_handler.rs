@@ -1,3 +1,4 @@
+
 use ggez::{
     event::{EventHandler, MouseButton},
     graphics,
@@ -11,6 +12,11 @@ use crate::{
     render_utilities::{flip_index, translate_to_index},
     Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
 };
+
+use ggez::timer;
+
+use crate::piece::piece::PieceColor;
+
 
 use crate::{
     piece::{self, piece::PieceColor::*},
@@ -27,6 +33,9 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         while ggez::timer::check_update_time(ctx, 60) {
+
+            self.run_clock();
+
             let state_read = STATE.get().read().unwrap().clone();
 
             let incoming_move = state_read.incoming_move;
@@ -69,6 +78,7 @@ impl EventHandler for Game {
                     STATE.get().write().unwrap().event_validation.create_room = false;
                 }
 
+                // This user successfully joined the room
                 if event_validation.join_room {
                     self.menu.visible = false;
 
@@ -77,6 +87,7 @@ impl EventHandler for Game {
                     // Ask server for opponent name
                     self.connection.send("get_opponent_name", "");
                     self.update_available_moves();
+                    STATE.get().write().unwrap().opponent_online = true;
                     STATE.get().write().unwrap().event_validation.join_room = false;
                 }
 
@@ -90,6 +101,7 @@ impl EventHandler for Game {
                 }
             }
 
+            // A new connection joined the game
             if event_validation.opponent_connect {
                 println!("Opponent connect parsed!");
                 // If the user is still in end game screen we force him into the game
@@ -99,12 +111,19 @@ impl EventHandler for Game {
                     self.active_turn = self.playing_as_white;
                 }
 
-                let color = if self.playing_as_white {
-                    String::from("black")
-                } else {
+                let color = if (
+                    self.winner.is_some() && self.playing_as_white) || (self.winner.is_none() && !self.playing_as_white
+                ) {
                     String::from("white")
+                } else {
+                    String::from("black")
                 };
+
+                // Tell the new connection which color it should have
+                // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
+                self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
+
                 STATE
                     .get()
                     .write()
@@ -114,6 +133,13 @@ impl EventHandler for Game {
             }
 
             if event_validation.opponent_disconnect {
+                if self.playing_as_white {
+                    self.game_over(PieceColor::White);
+                }
+                else {
+                    self.game_over(PieceColor::White);
+                }
+
                 STATE
                     .get()
                     .write()
@@ -144,7 +170,25 @@ impl EventHandler for Game {
                 self.game_over(winner);
                 STATE.get().write().unwrap().event_validation.resign = false;
             }
+
+            match event_validation.time {
+                Some((total_time, increment)) => {
+                    self.time.time_set = true;
+                    self.time.total_time = total_time;
+                    self.time.increment = increment;
+
+                    self.time.time_left = self.time.total_time;
+                    self.time.opponent_time_left = self.time.total_time;
+                    STATE.get().write().unwrap().event_validation.time = None;
+                }
+                None => {}
+            }
         }
+
+        // Let the loop sleep until read to continue
+        // Prevents the program from taking up
+        // 100% CPU power if not neccessary
+        timer::yield_now();
         Ok(())
     }
 
@@ -180,6 +224,11 @@ impl EventHandler for Game {
             return graphics::present(ctx);
         }
 
+        if !self.time.time_set {
+            self.render_time_interface(ctx);
+            return graphics::present(ctx);
+        }
+
         // Draws the background board
         graphics::draw(
             ctx,
@@ -206,32 +255,23 @@ impl EventHandler for Game {
         piece::promotion::render_promotion_interface(&self, ctx)?;
 
         // Draw opponent name
+        let mut display_name = String::from("Awaiting player...");
         let opponent_name = read_state.event_validation.opponent_name.clone();
         if let Some(name) = opponent_name {
-            self.menu.draw_text(
-                ctx,
-                name,
-                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
-                (
-                    BOARD_WIDTH as f32,
-                    40.0, // Same height as the room code text
-                ),
-                graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left,
-            );
-        } else {
-            self.menu.draw_text(
-                ctx,
-                String::from("Awaiting player..."),
-                (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
-                (
-                    BOARD_WIDTH as f32,
-                    40.0, // Same height as the room code text
-                ),
-                graphics::Color::from(LIGHT_COLOR),
-                graphics::Align::Left,
-            );
+            display_name = name;
         }
+
+        self.menu.draw_text(
+            ctx,
+            display_name,
+            (BOARD_ORIGO_X, 50.0 / 2.0 - 40.0 / 2.0),
+            (
+                BOARD_WIDTH as f32,
+                40.0, // Same height as the room code text
+            ),
+            graphics::Color::from(LIGHT_COLOR),
+            graphics::Align::Left,
+        );
 
         // Draw name
         let name = read_state.name.clone();
@@ -246,6 +286,8 @@ impl EventHandler for Game {
             graphics::Color::from(LIGHT_COLOR),
             graphics::Align::Left,
         );
+
+        self.render_time(ctx);
 
         self.menu.draw_clickables(ctx, vec![ClickableGroup::InGame]);
 
@@ -268,22 +310,33 @@ impl EventHandler for Game {
                 if read_state.entering_name {
                     parsing_groups.push(ClickableGroup::EnterName);
                 }
-                if self.menu.visible {
+                else if self.menu.visible {
                     parsing_groups.push(ClickableGroup::MainMenu);
                     parsing_groups.push(ClickableGroup::MainMenuList);
                 } else if self.winner.is_some() {
                     parsing_groups.push(ClickableGroup::GameOverMenu);
-                } else {
+                } else if !self.time.time_set {
+                    parsing_groups.push(ClickableGroup::TimeSelection);
+                }
+                else {
                     parsing_groups.push(ClickableGroup::InGame);
                 }
                 // Button logic
                 self.button_parsing(parsing_groups);
 
-                if self.menu.visible || self.winner.is_some() {
+                if read_state.entering_name ||
+                    self.menu.visible ||
+                    self.winner.is_some() ||
+                    !self.time.time_set {
                     return;
                 }
 
                 //------------------------------------------------------
+
+                // If there is no opponent we cannot make moves
+                if !read_state.opponent_online {
+                    return
+                }
 
                 // Cursor out of bounds checking
                 if x > BOARD_ORIGO_X + BOARD_WIDTH as f32
@@ -388,7 +441,7 @@ impl EventHandler for Game {
         match button {
             MouseButton::Left => {
                 // UI logic
-                if self.menu.visible || self.winner.is_some() {
+                if self.menu.visible || self.winner.is_some() || !self.time.time_set {
                     return;
                 }
 
@@ -439,25 +492,25 @@ impl EventHandler for Game {
     }
 
     fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32, _dx: f32, _dy: f32) {
-        let mut active_groups: Vec<ClickableGroup> = Vec::new();
+        let read_state = STATE.get().read().unwrap();
         // Entering name state
-        if STATE.get().read().unwrap().entering_name {
-            active_groups.push(ClickableGroup::EnterName);
+        let mut parsing_groups: Vec<ClickableGroup> = Vec::new();
+        if read_state.entering_name {
+            parsing_groups.push(ClickableGroup::EnterName);
         }
-        // End game screen
-        else if self.winner.is_some() {
-            active_groups.push(ClickableGroup::GameOverMenu);
-        }
-        // Main menu screen
         else if self.menu.visible {
-            active_groups.push(ClickableGroup::MainMenu);
-            active_groups.push(ClickableGroup::MainMenuList);
-        } else {
-            // In game
-            active_groups.push(ClickableGroup::InGame);
+            parsing_groups.push(ClickableGroup::MainMenu);
+            parsing_groups.push(ClickableGroup::MainMenuList);
+        } else if self.winner.is_some() {
+            parsing_groups.push(ClickableGroup::GameOverMenu);
+        } else if !self.time.time_set {
+            parsing_groups.push(ClickableGroup::TimeSelection);
+        }
+        else {
+            parsing_groups.push(ClickableGroup::InGame);
         }
 
-        self.menu.on_mouse_move(ctx, x, y, active_groups);
+        self.menu.on_mouse_move(ctx, x, y, parsing_groups);
     }
 
     fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
@@ -478,6 +531,7 @@ impl EventHandler for Game {
             if name.len() <= 20 {
                 STATE.get().write().unwrap().name = String::from(name);
             }
+
         }
     }
 }

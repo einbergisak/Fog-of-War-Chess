@@ -15,6 +15,7 @@ pub(crate) struct NetworkEventValidation {
     pub(crate) set_color: Option<PieceColor>,
     pub(crate) resign: bool,
     pub(crate) opponent_name: Option<String>,
+    pub(crate) time: Option<(i32, i32)>
 }
 
 #[derive(Debug, Clone)]
@@ -25,12 +26,9 @@ pub(crate) struct Room {
 
 impl Networking {
     pub(crate) fn new() -> Networking {
-        let socket = SocketBuilder::new("http://chess.datasektionen.link")
+        let socket = SocketBuilder::new(/* "http://chess.datasektionen.link" */ "http://localhost:8080")
             .set_namespace("/")
             .expect("illegal namespace")
-            .on("list_rooms_res", |payload, socket| {
-                events::on_list_rooms(payload, socket)
-            })
             .on("join_room_res", |payload, socket| {
                 events::on_join_room(payload, socket)
             })
@@ -60,6 +58,9 @@ impl Networking {
             })
             .on("get_opponent_name", |payload, socket| {
                 events::on_get_opponent_name(payload, socket)
+            })
+            .on("set_clock_time", |payload, socket| {
+                events::on_set_clock_time(payload, socket)
             })
             .on("error", |err, _| eprintln!("Error: {:#?}", err))
             .connect()

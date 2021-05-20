@@ -15,6 +15,7 @@ mod default_board_state;
 mod event_handler;
 mod game;
 mod move_struct;
+mod time;
 mod piece {
     pub mod piece;
     pub mod piece_movement;
@@ -32,6 +33,7 @@ mod menu {
     pub mod menu_game_over;
     pub mod menu_state;
     pub mod menu_utilities;
+    pub mod create_clickable_layout;
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +45,7 @@ pub(crate) struct State {
     pub(crate) event_validation: NetworkEventValidation,
     pub(crate) incoming_move: Option<Move>,
     pub(crate) room_id: Option<String>,
+    pub(crate) opponent_online: bool,
 }
 
 static STATE: Storage<RwLock<State>> = Storage::new();
@@ -65,8 +68,10 @@ fn main() {
             set_color: None,
             resign: false,
             opponent_name: None,
+            time: None
         },
         room_id: None,
+        opponent_online: false
     };
     STATE.set(RwLock::new(app_state));
 
