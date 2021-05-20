@@ -178,7 +178,7 @@ impl Game {
 			}
 		} else {
 			// Cannot have games with negative time
-			if self.time.total_time - count >= 0 {
+			if self.time.total_time - count >= 15 {
 				self.time.total_time -= count;
 			}
 		}
