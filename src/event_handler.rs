@@ -482,10 +482,10 @@ impl EventHandler for Game {
             let mut name = STATE.get().read().unwrap().name.clone();
 
             // 8u8 is the ASCII code for backspace
-            if character != (8u8 as char) {
-                name.push(character);
-            } else {
+            if character == (8u8 as char) {
                 name.pop();
+            } else if character != ' ' {
+                name.push(character);
             }
             if name.len() <= 20 {
                 STATE.get().write().unwrap().name = String::from(name);

@@ -48,8 +48,16 @@ pub(crate) fn check_promotion(game: &mut Game, x_tile: usize, y_tile: usize) {
             let captured_piece = game.board[piece_dest_index].take();
 
             // The game is over when a king is captured
-            if let Some(Piece { piece_type: King(_), ..}) = &captured_piece{
-                game.game_over(if game.playing_as_white{PieceColor::White}else{PieceColor::Black});
+            if let Some(Piece {
+                piece_type: King(_),
+                ..
+            }) = &captured_piece
+            {
+                game.game_over(if game.playing_as_white {
+                    PieceColor::White
+                } else {
+                    PieceColor::Black
+                });
                 return;
             }
             game.board[piece_dest_index] = Some(Piece {
