@@ -40,7 +40,7 @@ impl EventHandler for Game {
             }
 
             if self.active_turn {
-                if let Some((piece, piece_dest_index)) = self.premove.pop_front() {
+                if let Some((piece, piece_dest_index)) = self.premove.take() {
                     if let Some(piece) = self.board[piece.get_index()].take() {
                         self.attempt_move(piece, piece_dest_index)
                     } else {
@@ -292,7 +292,7 @@ impl EventHandler for Game {
                     || y < BOARD_ORIGO_Y
                 {
                     // Lets you cancel your premoves by clicking on something that's not interactive
-                    self.premove.clear();
+                    self.premove = None;
                     return;
                 }
                 // Calculates (on screen) list index (if cursor is in bounds) of the clicked tile
@@ -322,10 +322,6 @@ impl EventHandler for Game {
                     if let Some(piece) = self.board[piece.get_index()].take() {
                         self.attempt_move(piece, piece_dest_index);
                     }
-                    // Or, if the selected piece is not present on the board, still attempt the move if you're stacking premoves
-                    else if !self.premove.is_empty() {
-                        self.attempt_move(piece, piece_dest_index);
-                    }
 
                     // Prevents attempting to grab a piece which has just been unselected
                     if piece.index == clicked_index {
@@ -333,28 +329,11 @@ impl EventHandler for Game {
                     }
                 }
 
-                // TODO: Premoving the same piece twice
-                if !had_selected {
-                    for (premove_piece, premove_dest_index) in &self.premove {
-                        if clicked_index == *premove_dest_index {
-                            let mut premove_piece_with_updated_source_index = premove_piece.clone();
-                            println!("AWSDQWDWQ");
-                            premove_piece_with_updated_source_index.index =
-                                premove_dest_index.clone();
-                            self.grabbed_piece = Some(premove_piece_with_updated_source_index);
-                        }
-                    }
-                    if self.grabbed_piece.is_some() {
-                        return;
-                    }
-                }
-
-
 
                 // Attempt to grab a piece from the clicked tile
                 if let Some(piece) = self.board[clicked_index].clone().take() {
-                    // Prevents you from grabbing the
-                    if let Some((p, _d)) = self.premove.front() {
+                    // Prevents you from grabbing the piece you just premoved
+                    if let Some((p, _d)) = &self.premove {
                         if p.get_index() == clicked_index {
                             return;
                         }
@@ -370,9 +349,7 @@ impl EventHandler for Game {
                         White if !self.playing_as_white => {
                             // Cancel premoves if attempting to select an opposing piece
                             if !had_selected{
-                                if let Some(_) = self.premove.pop_front() {
-                                    self.premove.clear();
-                                }
+                                self.premove.take();
                             }
 
                             return;
@@ -380,9 +357,7 @@ impl EventHandler for Game {
                         Black if self.playing_as_white => {
                             // Cancel premoves if attempting to select an opposing piece
                             if !had_selected{
-                                if let Some(_) = self.premove.pop_front() {
-                                    self.premove.clear();
-                                }
+                                self.premove.take();
                             }
                             return;
                         }
@@ -396,9 +371,7 @@ impl EventHandler for Game {
                 // If a piece was selected when this function was called, don't interpret a the click as a premove cancel
                 else if !had_selected {
                     // Lets you cancel your premoves by clicking on something that's not interactive
-                    if let Some(_) = self.premove.pop_front() {
-                        self.premove.clear();
-                    }
+                    self.premove.take();
                 }
             }
             _ => {}
@@ -452,7 +425,7 @@ impl EventHandler for Game {
                         println!("Out of bounds");
                         return;
                     }
-                    if !self.premove.is_empty() {
+                    if self.premove.is_some() {
                         self.attempt_move(piece, piece_dest_index);
                     } else if let Some(piece) = self.board[piece.get_index()].take() {
                         self.attempt_move(piece, piece_dest_index);

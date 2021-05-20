@@ -7,7 +7,7 @@ use ggez::{
 use crate::{
     event_handler::{BOARD_ORIGO_X, BOARD_ORIGO_Y, BOARD_SIZE, TILE_SIZE},
     game::Game,
-    piece::piece::{get_piece_rect, get_valid_move_indices, Piece},
+    piece::piece::{get_piece_rect, get_valid_move_indices},
 };
 
 pub(crate) fn flip_index(index: usize) -> usize {
@@ -87,8 +87,8 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
     // Render each piece in the board
     'each_in_board: for (index, tile) in game.board.iter().enumerate() {
         if let Some(piece) = tile {
-            // If the piece is in the premove queue, don't render it (it is instead rendered a bit down in this function, at the last premove destination).
-            for (premove_piece, _dest) in &game.premove {
+            // If the piece has been premoved, don't render it (it is instead rendered a bit down in this function, at the the premove destination).
+            if let Some((premove_piece, _premove_dest)) = &game.premove {
                 if *piece == *premove_piece {
                     continue 'each_in_board;
                 }
@@ -140,28 +140,12 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
         }
     }
 
-    let mut previous_premoves: Vec<(Piece, usize)> = Vec::new();
-
-    // If a premove is queued, render it at it's attempted destination index instead of its source index.
-    'outer: for (premove_piece, premove_dest) in &game.premove {
-        // If a piece is present multiple times in the premove queue, replace its older premove with it's newer in the "previous_premoves"-array.
-        // This makes sure that the piece is only drawn at it's final premove destination and not at every step of the premove.
-        for (i, (_prev_piece, prev_dest)) in previous_premoves.clone().iter().enumerate() {
-            if *prev_dest == premove_piece.get_index() {
-                previous_premoves.remove(i);
-                previous_premoves.insert(i, (*premove_piece, *premove_dest));
-                continue 'outer;
-            }
-        }
-        previous_premoves.push((*premove_piece, *premove_dest));
-    }
-
     // Draws the destination of the final premove for each piece
-    for (piece, index) in previous_premoves {
+    if let Some((piece, index)) = &game.premove {
         let flipped_index = if game.playing_as_white {
-            flip_index(index)
+            flip_index(*index)
         } else {
-            index
+            *index
         };
 
         let rel_x = (flipped_index % BOARD_SIZE) as f32;
@@ -257,7 +241,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
     }
 
     // Renders premove highlighting
-    for (piece, piece_dest_index) in &game.premove {
+    if let Some((piece, piece_dest_index)) = &game.premove {
         // Source tile
         let dp_source_tile = DrawParam::default()
             .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
