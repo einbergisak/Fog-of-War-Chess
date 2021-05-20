@@ -360,6 +360,7 @@ impl Game {
         self.game_active = false;
         self.grabbed_piece = None;
         self.selected_piece = None;
+        STATE.get().write().unwrap().event_validation.deselect_cursor = true;
 
         match winning_color {
             PieceColor::White => {
