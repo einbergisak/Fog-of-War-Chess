@@ -95,11 +95,14 @@ impl EventHandler for Game {
                     self.active_turn = self.playing_as_white;
                 }
 
-                let color = if self.playing_as_white {
-                    String::from("black")
-                } else {
+                let color = if (
+                    self.winner.is_some() && self.playing_as_white) || (self.winner.is_none() && !self.playing_as_white
+                ) {
                     String::from("white")
+                } else {
+                    String::from("black")
                 };
+                
                 // Tell the new connection which color it should have
                 // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
