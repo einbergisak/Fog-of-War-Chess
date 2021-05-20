@@ -358,6 +358,8 @@ impl Game {
     pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
 
         self.game_active = false;
+        self.grabbed_piece = None;
+        self.selected_piece = None;
 
         match winning_color {
             PieceColor::White => {
