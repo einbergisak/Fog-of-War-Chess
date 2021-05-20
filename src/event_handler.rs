@@ -349,6 +349,8 @@ impl EventHandler for Game {
                     }
                 }
 
+
+
                 // Attempt to grab a piece from the clicked tile
                 if let Some(piece) = self.board[clicked_index].clone().take() {
                     // Prevents you from grabbing the
@@ -366,9 +368,22 @@ impl EventHandler for Game {
                     }
                     match &piece.color {
                         White if !self.playing_as_white => {
+                            // Cancel premoves if attempting to select an opposing piece
+                            if !had_selected{
+                                if let Some(_) = self.premove.pop_front() {
+                                    self.premove.clear();
+                                }
+                            }
+
                             return;
                         }
                         Black if self.playing_as_white => {
+                            // Cancel premoves if attempting to select an opposing piece
+                            if !had_selected{
+                                if let Some(_) = self.premove.pop_front() {
+                                    self.premove.clear();
+                                }
+                            }
                             return;
                         }
                         _ => {}
