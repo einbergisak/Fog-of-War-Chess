@@ -7,7 +7,7 @@ use ggez::{
 use crate::{
     event_handler::{BOARD_ORIGO_X, BOARD_ORIGO_Y, BOARD_SIZE, TILE_SIZE},
     game::Game,
-    piece::piece::{get_piece_rect, get_valid_move_indices},
+    piece::piece::{get_piece_rect, get_valid_move_indices, PieceColor},
 };
 
 pub(crate) fn flip_index(index: usize) -> usize {
@@ -85,12 +85,12 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
     let mut hidden_tiles = MeshBuilder::new();
 
     // Render each piece in the board
-    'each_in_board: for (index, tile) in game.board.iter().enumerate() {
+    for (index, tile) in game.board.iter().enumerate() {
         if let Some(piece) = tile {
             // If the piece has been premoved, don't render it (it is instead rendered a bit down in this function, at the the premove destination).
             if let Some((premove_piece, _premove_dest)) = &game.premove {
                 if *piece == *premove_piece {
-                    continue 'each_in_board;
+                    continue;
                 }
             }
         }
@@ -175,40 +175,15 @@ pub(crate) fn render_fog_and_pieces(game: &Game, ctx: &mut Context) -> GameResul
 
 /// Renders highlighting for your available moves and for the prievious move (if it was visible to you)
 pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> GameResult<()> {
+    let is_premove = !game.active_turn;
     let mut movement_indication_batch = SpriteBatch::new(Image::new(ctx, "/markers.png")?);
-    for piece in [game.grabbed_piece, game.selected_piece].iter() {
-        if let Some(piece) = piece {
-            // Adds movement indication dots and highlighting
-            for index in get_valid_move_indices(game, piece) {
-                let mut dp = DrawParam::default().offset(Point2::new(0.5, 0.5)).dest({
-                    let (x, y) = if game.playing_as_white {
-                        flip_pos(translate_to_coords(index))
-                    } else {
-                        translate_to_coords(index)
-                    };
-                    let x_pos =
-                        x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X + (TILE_SIZE / 2) as f32;
-                    let y_pos =
-                        y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y + (TILE_SIZE / 2) as f32;
-                    Point2::new(x_pos, y_pos)
-                });
-                if game.board[index].is_some() {
-                    dp.src = Rect::new(1.0 / 4.0, 0.0, 1.0 / 4.0, 1.0)
-                } else {
-                    dp = dp.scale(Vector2::new(0.3, 0.3));
-                    dp.src = Rect::new(0.0 / 4.0, 0.0, 1.0 / 4.0, 1.0)
-                }
-                movement_indication_batch.add(dp);
-            }
-        }
-    }
 
     // Highlights the source- and destination tile of the previous move (if the moves are visible to you)
     if let Some(m) = game.move_history.last() {
         // Source tile
         if game.available_moves.contains(&m.piece.index) {
             let dp_source_tile = DrawParam::default()
-                .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+                .src(Rect::new(5.0 / 6.0, 0.0, 1.0 / 6.0, 1.0))
                 .dest({
                     let (x, y) = if game.playing_as_white {
                         flip_pos(translate_to_coords(m.piece.index))
@@ -225,7 +200,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
         // Destination tile
         if game.available_moves.contains(&m.piece_dest_index) {
             let dp_dest_tile = DrawParam::default()
-                .src(Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+                .src(Rect::new(5.0 / 6.0, 0.0, 1.0 / 6.0, 1.0))
                 .dest({
                     let (x, y) = if game.playing_as_white {
                         flip_pos(translate_to_coords(m.piece_dest_index))
@@ -244,7 +219,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
     if let Some((piece, piece_dest_index)) = &game.premove {
         // Source tile
         let dp_source_tile = DrawParam::default()
-            .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+            .src(Rect::new(4.0 / 6.0, 0.0, 1.0 / 6.0, 1.0))
             .dest({
                 let (x, y) = if game.playing_as_white {
                     flip_pos(translate_to_coords(piece.index))
@@ -259,7 +234,7 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
 
         // Destination tile
         let dp_dest_tile = DrawParam::default()
-            .src(Rect::new(2.0 / 4.0, 0.0, 1.0 / 4.0, 1.0))
+            .src(Rect::new(4.0 / 6.0, 0.0, 1.0 / 6.0, 1.0))
             .dest({
                 let (x, y) = if game.playing_as_white {
                     flip_pos(translate_to_coords(*piece_dest_index))
@@ -290,17 +265,68 @@ pub(crate) fn render_movement_indication(game: &Game, ctx: &mut Context) -> Game
         }
 
         // Only highlights the square if it is a valid move
-        if get_valid_move_indices(game, piece).contains(&hovered_index) {
+        if get_valid_move_indices(game, piece, is_premove).contains(&hovered_index) {
             let dest_rect = Point2::new(
                 x_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X,
                 y_tile as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y,
             );
-            let src_rect = Rect::new(3.0 / 4.0, 0.0, 1.0 / 4.0, 1.0);
+            let src_rect = Rect::new(5.0 / 6.0, 0.0, 1.0 / 6.0, 1.0);
             let dp = DrawParam::default()
                 .src(src_rect)
                 .dest(dest_rect)
                 .color(graphics::Color::from_rgba(100, 200, 100, 250));
             movement_indication_batch.add(dp);
+        }
+    }
+
+    // Render piece movement indication dots and capture highlighting
+    for piece in [game.grabbed_piece, game.selected_piece].iter() {
+        if let Some(piece) = piece {
+            for index in get_valid_move_indices(game, piece, is_premove) {
+                let (x, y) = if game.playing_as_white {
+                    flip_pos(translate_to_coords(index))
+                } else {
+                    translate_to_coords(index)
+                };
+                let x_pos = x as f32 * TILE_SIZE as f32 + BOARD_ORIGO_X + (TILE_SIZE / 2) as f32;
+                let y_pos = y as f32 * TILE_SIZE as f32 + BOARD_ORIGO_Y + (TILE_SIZE / 2) as f32;
+                let dest = Point2::new(x_pos, y_pos);
+                let mut dp = DrawParam::default()
+                    .offset(Point2::new(0.5, 0.5))
+                    .dest(dest);
+
+                // Capture indication is displayed for premoves if the tile contains a visible piece.
+                let premove_capture = if let Some(p) = &game.board[index] {
+                    if is_premove
+                        && ((p.color == PieceColor::White && game.playing_as_white)
+                            || (p.color == PieceColor::Black && !game.playing_as_white)
+                            || game.available_moves.contains(&index))
+                    {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Displays capture indication if there is a piece on the index, else display a movement indication dot.
+                if (game.board[index].is_some() && !is_premove) || (is_premove && premove_capture) {
+                    dp.src = if !is_premove {
+                        Rect::new(1.0 / 6.0, 0.0, 1.0 / 6.0, 1.0)
+                    } else {
+                        Rect::new(3.0 / 6.0, 0.0, 1.0 / 6.0, 1.0)
+                    }
+                } else {
+                    dp = dp.scale(Vector2::new(0.3, 0.3));
+                    dp.src = if !is_premove {
+                        Rect::new(0.0 / 6.0, 0.0, 1.0 / 6.0, 1.0)
+                    } else {
+                        Rect::new(2.01 / 6.0, 0.0, 1.0 / 6.0, 1.0)
+                    };
+                }
+                movement_indication_batch.add(dp);
+            }
         }
     }
 

@@ -341,7 +341,7 @@ impl Game {
                     || (piece.color == Black && !self.playing_as_white)
                 {
                     available_moves.push(piece.index);
-                    available_moves.append(&mut piece::get_valid_move_indices(self, &piece));
+                    available_moves.append(&mut piece::get_valid_move_indices(self, &piece, false));
                 }
             }
         }
@@ -513,7 +513,7 @@ impl Game {
 
     // Attempt to move a piece
     pub(crate) fn attempt_move(&mut self, piece: Piece, piece_dest_index: usize) {
-        let valid_moves = piece::get_valid_move_indices(self, &piece);
+        let valid_moves = piece::get_valid_move_indices(self, &piece, false);
         println!("Current turn: {}", self.active_turn);
         println!("Valid moves: {:?}", valid_moves);
         if valid_moves.contains(&piece_dest_index) && self.active_turn {
@@ -539,11 +539,11 @@ impl Game {
             self.move_grabbed_piece(piece, piece_dest_index);
         }
         // If not your turn, add the move as a premove (if there isn't already one)
-        else if !self.active_turn && self.premove.is_none(){
+        else if !self.active_turn && self.premove.is_none() {
             self.board[piece.index] = Some(piece);
 
             // TODO: Premove constraints
-            if piece_dest_index != piece.index {
+            if piece_dest_index != piece.index && get_valid_move_indices(self, &piece, true).contains(&piece_dest_index) {
                 println!(
                     "It's not your turn. Adding premove to index {} ",
                     piece_dest_index

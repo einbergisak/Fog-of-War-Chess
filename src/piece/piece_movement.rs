@@ -6,7 +6,7 @@ use crate::{
 };
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
+pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece, is_premove: bool) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
 
     let (x, y) = piece.get_pos();
@@ -15,7 +15,9 @@ pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if x < BOARD_SIZE - 1 {
         for column in (x + 1)..BOARD_SIZE {
             let dest_index = translate_to_index(column, y);
-            if !add_if_can_move(dest_index, piece, &mut indices, board) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
                 break;
             }
         }
@@ -25,7 +27,9 @@ pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if x > 0 {
         for column in (0..x).rev() {
             let dest_index = translate_to_index(column, y);
-            if !add_if_can_move(dest_index, piece, &mut indices, board) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
                 break;
             }
         }
@@ -35,7 +39,9 @@ pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if y < BOARD_SIZE - 1 {
         for row in (y + 1)..BOARD_SIZE {
             let dest_index = translate_to_index(x, row);
-            if !add_if_can_move(dest_index, piece, &mut indices, board) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
                 break;
             }
         }
@@ -45,7 +51,9 @@ pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if y > 0 {
         for row in (0..y).rev() {
             let dest_index = translate_to_index(x, row);
-            if !add_if_can_move(dest_index, piece, &mut indices, board) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
                 break;
             }
         }
@@ -55,50 +63,62 @@ pub(crate) fn rook_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
 }
 
 // Kan optimeras (slippa repetitiv kod) med macro men jag fattar inte sånt
-pub(crate) fn bishop_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
+pub(crate) fn bishop_valid_moves(board: &Board, piece: &Piece, is_premove: bool) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = piece.get_pos();
 
     // Towards x+ y+
     for (dest_x, dest_y) in (x..BOARD_SIZE).zip(y..BOARD_SIZE) {
         let dest_index = translate_to_index(dest_x, dest_y);
-        if !(x == dest_x && y == dest_y) && !add_if_can_move(dest_index, piece, &mut indices, board)
-        {
-            break;
+        if !(x == dest_x && y == dest_y) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
+                break;
+            }
         }
     }
 
     // Towards x+ y-
     for (dest_x, dest_y) in (x..BOARD_SIZE).zip((0..=y).rev()) {
         let dest_index = translate_to_index(dest_x, dest_y);
-        if !(x == dest_x && y == dest_y) && !add_if_can_move(dest_index, piece, &mut indices, board)
-        {
-            break;
+        if !(x == dest_x && y == dest_y) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
+                break;
+            }
         }
     }
 
     // Towards x- y-
     for (dest_x, dest_y) in ((0..=x).rev()).zip((0..=y).rev()) {
         let dest_index = translate_to_index(dest_x, dest_y);
-        if !(x == dest_x && y == dest_y) && !add_if_can_move(dest_index, piece, &mut indices, board)
-        {
-            break;
+        if !(x == dest_x && y == dest_y) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
+                break;
+            }
         }
     }
 
     // Towards x- y+
     for (dest_x, dest_y) in ((0..=x).rev()).zip(y..BOARD_SIZE) {
         let dest_index = translate_to_index(dest_x, dest_y);
-        if !(x == dest_x && y == dest_y) && !add_if_can_move(dest_index, piece, &mut indices, board)
-        {
-            break;
+        if !(x == dest_x && y == dest_y) {
+            if is_premove {
+                indices.push(dest_index);
+            } else if !add_if_can_move(dest_index, piece, &mut indices, board) {
+                break;
+            }
         }
     }
 
     indices
 }
 
-pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
+pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece, is_premove: bool) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = piece.get_pos();
 
@@ -106,11 +126,19 @@ pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if y > 1 {
         if x > 0 {
             // second step towards x-
-            add_if_can_move(translate_to_index(x - 1, y - 2), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x - 1, y - 2))
+            } else {
+                add_if_can_move(translate_to_index(x - 1, y - 2), piece, &mut indices, board);
+            }
         }
         if x < BOARD_SIZE - 1 {
             // second step towards x+
-            add_if_can_move(translate_to_index(x + 1, y - 2), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x + 1, y - 2))
+            } else {
+                add_if_can_move(translate_to_index(x + 1, y - 2), piece, &mut indices, board);
+            }
         }
     }
 
@@ -118,11 +146,19 @@ pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if y < BOARD_SIZE - 2 {
         if x > 0 {
             // second step towards x-
-            add_if_can_move(translate_to_index(x - 1, y + 2), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x - 1, y + 2))
+            } else {
+                add_if_can_move(translate_to_index(x - 1, y + 2), piece, &mut indices, board);
+            }
         }
         if x < BOARD_SIZE - 1 {
             // second step towards x+
-            add_if_can_move(translate_to_index(x + 1, y + 2), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x + 1, y + 2))
+            } else {
+                add_if_can_move(translate_to_index(x + 1, y + 2), piece, &mut indices, board);
+            }
         }
     }
 
@@ -130,11 +166,19 @@ pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if x > 1 {
         if y > 0 {
             // second step towards y-
-            add_if_can_move(translate_to_index(x - 2, y - 1), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x - 2, y - 1))
+            } else {
+                add_if_can_move(translate_to_index(x - 2, y - 1), piece, &mut indices, board);
+            }
         }
         if y < BOARD_SIZE - 1 {
             // second step towards y+
-            add_if_can_move(translate_to_index(x - 2, y + 1), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x - 2, y + 1))
+            } else {
+                add_if_can_move(translate_to_index(x - 2, y + 1), piece, &mut indices, board);
+            }
         }
     }
 
@@ -142,18 +186,26 @@ pub(crate) fn knight_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
     if x < BOARD_SIZE - 2 {
         if y > 0 {
             // second step towards y-
-            add_if_can_move(translate_to_index(x + 2, y - 1), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x + 2, y - 1))
+            } else {
+                add_if_can_move(translate_to_index(x + 2, y - 1), piece, &mut indices, board);
+            }
         }
         if y < BOARD_SIZE - 1 {
             // second step towards y+
-            add_if_can_move(translate_to_index(x + 2, y + 1), piece, &mut indices, board);
+            if is_premove {
+                indices.push(translate_to_index(x + 2, y + 1))
+            } else {
+                add_if_can_move(translate_to_index(x + 2, y + 1), piece, &mut indices, board);
+            }
         }
     }
 
     indices
 }
 
-pub(crate) fn king_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
+pub(crate) fn king_valid_moves(board: &Board, piece: &Piece, is_premove: bool) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = piece.get_pos();
 
@@ -167,12 +219,16 @@ pub(crate) fn king_valid_moves(board: &Board, piece: &Piece) -> Vec<usize> {
                 && dest_y < BOARD_SIZE as i32
                 && !(dest_x == x as i32 && dest_y == y as i32)
             {
-                add_if_can_move(
-                    translate_to_index(dest_x as usize, dest_y as usize),
-                    piece,
-                    &mut indices,
-                    board,
-                );
+                if is_premove {
+                    indices.push(translate_to_index(dest_x as usize, dest_y as usize))
+                } else {
+                    add_if_can_move(
+                        translate_to_index(dest_x as usize, dest_y as usize),
+                        piece,
+                        &mut indices,
+                        board,
+                    );
+                }
             }
         }
     }
@@ -226,6 +282,7 @@ pub(crate) fn pawn_valid_moves(
     board: &Board,
     piece: &Piece,
     move_history: &Vec<Move>,
+    is_premove: bool,
 ) -> Vec<usize> {
     let mut indices: Vec<usize> = Vec::new();
     let (x, y) = piece.get_pos();
@@ -248,8 +305,8 @@ pub(crate) fn pawn_valid_moves(
     let one_forwards = (y as i32 + 1 * y_direction) as usize;
     let two_forwards = (y as i32 + 2 * y_direction) as usize;
 
-    // If there is no piece blocking the pawn
-    if board[translate_to_index(x, one_forwards)].is_none() {
+    // If there is no piece blocking the pawn or if premoving
+    if board[translate_to_index(x, one_forwards)].is_none() || is_premove {
         // Lets the pawn move two spaces forwards on its first move
         if piece.piece_type == Pawn(false) && board[translate_to_index(x, two_forwards)].is_none() {
             indices.push(translate_to_index(x, two_forwards))
@@ -260,6 +317,11 @@ pub(crate) fn pawn_valid_moves(
 
     let mut pawn_capture = |x_direction: i32| {
         let adjacent_x = (x as i32 + x_direction) as usize;
+
+        if is_premove {
+            indices.push(translate_to_index(adjacent_x, one_forwards));
+            return;
+        }
 
         // Regular diagonal capture
         if let Some(Piece {

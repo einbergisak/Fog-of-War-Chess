@@ -293,6 +293,7 @@ impl EventHandler for Game {
                 {
                     // Lets you cancel your premoves by clicking on something that's not interactive
                     self.premove = None;
+                    self.selected_piece = None;
                     return;
                 }
                 // Calculates (on screen) list index (if cursor is in bounds) of the clicked tile
@@ -329,7 +330,6 @@ impl EventHandler for Game {
                     }
                 }
 
-
                 // Attempt to grab a piece from the clicked tile
                 if let Some(piece) = self.board[clicked_index].clone().take() {
                     // Prevents you from grabbing the piece you just premoved
@@ -348,7 +348,7 @@ impl EventHandler for Game {
                     match &piece.color {
                         White if !self.playing_as_white => {
                             // Cancel premoves if attempting to select an opposing piece
-                            if !had_selected{
+                            if !had_selected {
                                 self.premove.take();
                             }
 
@@ -356,7 +356,7 @@ impl EventHandler for Game {
                         }
                         Black if self.playing_as_white => {
                             // Cancel premoves if attempting to select an opposing piece
-                            if !had_selected{
+                            if !had_selected {
                                 self.premove.take();
                             }
                             return;
