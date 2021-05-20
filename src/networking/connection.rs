@@ -27,7 +27,7 @@ pub(crate) struct Room {
 
 impl Networking {
     pub(crate) fn new() -> Networking {
-        let socket = SocketBuilder::new(/* "http://chess.datasektionen.link" */ "http://localhost:8080")
+        let socket = SocketBuilder::new("http://chess.datasektionen.link")
             .set_namespace("/")
             .expect("illegal namespace")
             .on("join_room_res", |payload, socket| {

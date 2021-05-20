@@ -1,7 +1,4 @@
-use ggez::{
-    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
-    Context,
-};
+use ggez::{Context, audio::{SoundSource, Source}, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect}};
 
 use crate::{default_board_state::generate_default_board, menu::{
         clickable::{Clickable, Transform},
@@ -31,6 +28,11 @@ pub(crate) const DARK_COLOR: (u8, u8, u8) = (181, 136, 99);
 pub(crate) const LIGHT_COLOR: (u8, u8, u8) = (240, 217, 181);
 pub(crate) const ERROR_COLOR: (u8, u8, u8) = (176, 0, 32);
 
+pub(crate) struct Sound {
+    pub(crate) movement: Source,
+    pub(crate) capture: Source,
+    pub(crate) game_end: Source    
+}
 // Main struct
 pub(crate) struct Game {
     pub(crate) board: Board,
@@ -49,7 +51,8 @@ pub(crate) struct Game {
     pub(crate) winner: Option<PieceColor>,
     pub(crate) is_admin: bool,
     pub(crate) time: Time,
-    pub(crate) game_active: bool
+    pub(crate) game_active: bool,
+    pub(crate) sound: Sound
 }
 
 impl Game {
@@ -82,7 +85,12 @@ impl Game {
                 total_time: 5 * 60,
                 increment: 0
             },
-            game_active: false
+            game_active: false,
+            sound: Sound {
+                movement: ggez::audio::Source::new(ctx, "/move.ogg").unwrap(),
+                capture: ggez::audio::Source::new(ctx, "/capture.ogg").unwrap(),
+                game_end: ggez::audio::Source::new(ctx, "/game_end.ogg").unwrap()
+            }
         }
     }
 
@@ -337,6 +345,14 @@ impl Game {
             captured_piece,
             move_type,
         };
+
+        // Play sound
+        if captured_piece.is_some() {
+            self.sound.capture.play().expect("Could not play capture sound");
+        } else {
+            self.sound.movement.play().expect("Could not play movement sound");
+        }
+
         if self.active_turn {
             self.connection.send("opponent", &move_.to_string());
             self.grabbed_piece = None;
@@ -356,11 +372,18 @@ impl Game {
     }
 
     pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
+        // Cannot game over more than once
+        if self.winner.is_some() {
+            return
+        }
 
         self.game_active = false;
         self.grabbed_piece = None;
         self.selected_piece = None;
         STATE.get().write().unwrap().event_validation.deselect_cursor = true;
+
+        // Play game over sound
+        self.sound.game_end.play().expect("Could not play game over sound");
 
         match winning_color {
             PieceColor::White => {
