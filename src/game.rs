@@ -465,6 +465,7 @@ impl Game {
                     }
                     "goto_main_menu" => {
                         STATE.get().write().unwrap().room_id = None;
+                        STATE.get().write().unwrap().event_validation.opponent_name = None;
                         self.menu.visible = true;
                         self.reset_game();
                         self.time.time_set = false;
