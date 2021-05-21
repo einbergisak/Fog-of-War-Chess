@@ -31,44 +31,6 @@ pub(crate) struct Time {
 }
 
 impl Game {
-    // pub(crate) fn run_clock(&mut self) {
-
-    // 	// Decrease clock until we reach one second
-    // 	if self.time.clock < 60 {
-    // 		self.time.clock += 1;
-    // 		return
-    // 	}
-
-    // 	// Reset clock
-    // 	self.time.clock = 0;
-
-    // 	// If no opponent has connected or the game hasn't started we don't do
-    // 	// anything when one second has passed
-    // 	if !STATE.get().read().unwrap().opponent_online || !self.game_active {
-    // 		return
-    // 	}
-
-    // 	if self.active_turn {
-    // 		self.time.time_left -= 1;
-    // 	} else {
-    // 		self.time.opponent_time_left -= 1;
-    // 	}
-
-    // 	if self.time.time_left <= 0 {
-    // 		if self.playing_as_white {
-    // 			self.game_over(PieceColor::Black);
-    // 		} else {
-    // 			self.game_over(PieceColor::White);
-    // 		}
-    // 	} else if self.time.opponent_time_left <= 0 {
-    // 		if self.playing_as_white {
-    // 			self.game_over(PieceColor::White);
-    // 		} else {
-    // 			self.game_over(PieceColor::Black);
-    // 		}
-    // 	}
-    // }
-
     fn format_time(time_left: u64) -> String {
         let minutes = time_left / 60;
         let seconds = time_left % 60;

@@ -7,7 +7,7 @@ pub(crate) fn on_opponent(payload: Payload, _: Socket) {
 
     match payload {
         Payload::String(string) => {
-            println!("Incoming move: {}", string);
+            // println!("Incoming move: {}", string);
             app_state.write().unwrap().incoming_move = Some(Move::from_str(string));
         }
         Payload::Binary(_) => {}
