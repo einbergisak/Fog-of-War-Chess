@@ -456,6 +456,10 @@ impl Game {
                         self.connection.send("create_room", "");
                     }
                     "play_again" => {
+                        if STATE.get().read().unwrap().event_validation.opponent_name.is_none() {
+                            return;
+                        }
+
                         self.reset_game();
                         self.playing_as_white = !self.playing_as_white;
                         self.active_turn = self.playing_as_white;

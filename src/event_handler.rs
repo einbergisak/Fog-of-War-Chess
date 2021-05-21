@@ -140,6 +140,9 @@ impl EventHandler for Game {
                     self.game_over(PieceColor::Black);
                 }
 
+                // Clear opponent
+                STATE.get().write().unwrap().event_validation.opponent_name = None;
+
                 STATE
                     .get()
                     .write()
