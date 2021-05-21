@@ -80,7 +80,7 @@ impl PieceType {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
     pub(crate) color: PieceColor,
@@ -113,31 +113,33 @@ pub(crate) fn get_piece_rect(piece: &Piece) -> Rect {
     Rect::new(src_image_x, src_image_y, 1.0 / 6.0, 0.5)
 }
 
-pub(crate) fn get_valid_move_indices(game: &Game, piece: &Piece) -> Vec<usize> {
+/// Returns the indices of the valid moves that the piece can make.
+/// If the move is a premove, it will return all indices in range with no regard to if there are pieces blocking or if certain conditions are met.
+pub(crate) fn get_valid_move_indices(game: &Game, piece: &Piece, is_premove: bool) -> Vec<usize> {
     let board = &game.board;
 
     // Returns a list of the valid moves
     match piece.piece_type {
         // King moves one square in any direction
-        PieceType::King(_) => king_valid_moves(board, piece),
+        PieceType::King(_) => king_valid_moves(board, piece, is_premove),
 
         // Queen moves diagonally, vertically or horizontally (Rook + Bishop)
         PieceType::Queen => {
-            let mut moves = bishop_valid_moves(board, piece);
-            moves.append(&mut rook_valid_moves(board, piece));
+            let mut moves = bishop_valid_moves(board, piece, is_premove);
+            moves.append(&mut rook_valid_moves(board, piece, is_premove));
             moves
         }
 
         // Rook moves vertically or horizontally
-        PieceType::Rook(_) => rook_valid_moves(board, piece),
+        PieceType::Rook(_) => rook_valid_moves(board, piece, is_premove),
 
         // Bishop moves diagonally
-        PieceType::Bishop => bishop_valid_moves(board, piece),
+        PieceType::Bishop => bishop_valid_moves(board, piece, is_premove),
 
         // Knight moves two steps either vertically or horizontally, then one step in a perpendicular direction.
-        PieceType::Knight => knight_valid_moves(board, piece),
+        PieceType::Knight => knight_valid_moves(board, piece, is_premove),
 
         // Pawn move one square forwards, and captures one square diagonally forwards. It can move two squares forward on its first move.
-        PieceType::Pawn(_) => pawn_valid_moves(board, piece, &game.move_history),
+        PieceType::Pawn(_) => pawn_valid_moves(board, piece, &game.move_history, is_premove),
     }
 }

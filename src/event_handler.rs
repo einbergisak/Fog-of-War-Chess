@@ -1,6 +1,22 @@
-use ggez::{Context, GameResult, event::{EventHandler, KeyCode, KeyMods, MouseButton}, graphics, nalgebra::Point2, timer};
 
-use crate::{Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE, enter_name_screen::on_key_down, game::{BACKGROUND_COLOR, LIGHT_COLOR}, menu::clickable::ClickableGroup, piece::piece::PieceColor, render_utilities::{flip_index, translate_to_index}};
+use ggez::{
+    event::{EventHandler, MouseButton},
+    graphics,
+    nalgebra::Point2,
+    Context, GameResult,
+};
+
+use crate::{
+    game::{BACKGROUND_COLOR, LIGHT_COLOR},
+    menu::clickable::ClickableGroup,
+    render_utilities::{flip_index, translate_to_index},
+    Game, SCREEN_HEIGHT, SCREEN_WIDTH, STATE,
+};
+
+use ggez::timer;
+
+use crate::piece::piece::PieceColor;
+
 
 use crate::{
     piece::{self, piece::PieceColor::*},
@@ -102,12 +118,12 @@ impl EventHandler for Game {
                 } else {
                     String::from("black")
                 };
-                
+
                 // Tell the new connection which color it should have
                 // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
                 self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
-                
+
                 STATE
                     .get()
                     .write()
@@ -309,8 +325,8 @@ impl EventHandler for Game {
                 self.button_parsing(parsing_groups);
 
                 if read_state.entering_name ||
-                    self.menu.visible || 
-                    self.winner.is_some() || 
+                    self.menu.visible ||
+                    self.winner.is_some() ||
                     !self.time.time_set {
                     return;
                 }
@@ -328,45 +344,74 @@ impl EventHandler for Game {
                     || x < BOARD_ORIGO_X
                     || y < BOARD_ORIGO_Y
                 {
-                    println!("CLICK OUTSIDE {}", x);
+                    // Lets you cancel your premoves by clicking on something that's not interactive
+                    self.premove = None;
+                    self.selected_piece = None;
                     return;
                 }
                 // Calculates (on screen) list index (if cursor is in bounds) of the clicked tile
                 let x_tile = (x - BOARD_ORIGO_X) as usize / TILE_SIZE as usize;
                 let y_tile = (y - BOARD_ORIGO_Y) as usize / TILE_SIZE as usize;
 
-                let mut index = translate_to_index(x_tile, y_tile);
+                let mut clicked_index = translate_to_index(x_tile, y_tile);
                 if self.playing_as_white {
-                    index = flip_index(index);
+                    clicked_index = flip_index(clicked_index);
                 }
 
                 // Pawn promotion interface
                 piece::promotion::check_promotion(self, x_tile, y_tile);
 
+                let mut had_selected = false;
+
                 // If a piece has been selected by clicking, try to move to the clicked tile
                 if let Some(piece) = self.selected_piece.take() {
+                    had_selected = true;
                     let mut piece_dest_index = translate_to_index(x_tile, y_tile);
 
                     if self.playing_as_white {
                         piece_dest_index = flip_index(piece_dest_index);
                     }
 
+                    // If the player has selected a piece that's present on the board, attempt to move
                     if let Some(piece) = self.board[piece.get_index()].take() {
                         self.attempt_move(piece, piece_dest_index);
                     }
 
                     // Prevents attempting to grab a piece which has just been unselected
-                    if piece.index == index {
+                    if piece.index == clicked_index {
                         return;
                     }
                 }
+
                 // Attempt to grab a piece from the clicked tile
-                if let Some(piece) = self.board[index].clone().take() {
+                if let Some(piece) = self.board[clicked_index].clone().take() {
+                    // Prevents you from grabbing the piece you just premoved
+                    if let Some((p, _d)) = &self.premove {
+                        if p.get_index() == clicked_index {
+                            return;
+                        }
+                    }
+
+                    if let Some(m) = self.move_history.last() {
+                        // Prevents the player from grabbing directly after making a move by selecting-by-clicking
+                        if m.piece_dest_index == piece.get_index() && had_selected {
+                            return;
+                        }
+                    }
                     match &piece.color {
                         White if !self.playing_as_white => {
+                            // Cancel premoves if attempting to select an opposing piece
+                            if !had_selected {
+                                self.premove.take();
+                            }
+
                             return;
                         }
                         Black if self.playing_as_white => {
+                            // Cancel premoves if attempting to select an opposing piece
+                            if !had_selected {
+                                self.premove.take();
+                            }
                             return;
                         }
                         _ => {}
@@ -375,12 +420,11 @@ impl EventHandler for Game {
                     // Lock the cursor inside the application
                     ggez::input::mouse::set_cursor_grabbed(ctx, true).expect("Cursor grab failed");
                     ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Hand)
-                } else {
-                    // Lets you cancel your premove by clicking on something that's not interactive
-                    if let Some(_) = self.premove {
-                        self.premove = None;
-                    }
-                    return;
+                }
+                // If a piece was selected when this function was called, don't interpret a the click as a premove cancel
+                else if !had_selected {
+                    // Lets you cancel your premoves by clicking on something that's not interactive
+                    self.premove.take();
                 }
             }
             _ => {}
@@ -405,15 +449,14 @@ impl EventHandler for Game {
 
                 ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Cursor release fail");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
+
                 if let Some(piece) = self.grabbed_piece.take() {
-                    let (start_x, start_y) = (BOARD_ORIGO_X, BOARD_ORIGO_Y);
-
                     // Calculates list index (if in bounds) of the clicked tile
-                    let x_tile = ((x - start_x) / TILE_SIZE as f32) as usize;
-                    let y_tile = ((y - start_y) / TILE_SIZE as f32) as usize;
+                    let x_tile = ((x - BOARD_ORIGO_X) / TILE_SIZE as f32) as usize;
+                    let y_tile = ((y - BOARD_ORIGO_Y) / TILE_SIZE as f32) as usize;
 
-                    let piece_source_index = piece.index;
                     let mut piece_dest_index = translate_to_index(x_tile, y_tile);
+                    let piece_source_index = piece.index;
 
                     if self.playing_as_white {
                         piece_dest_index = flip_index(piece_dest_index);
@@ -426,16 +469,18 @@ impl EventHandler for Game {
                     }
 
                     // Out of bounds checking
-                    if x - start_x > BOARD_WIDTH as f32
-                        || y - start_y > BOARD_WIDTH as f32
-                        || x < start_x
-                        || y < start_y
+                    if x - BOARD_ORIGO_X > BOARD_WIDTH as f32
+                        || y - BOARD_ORIGO_Y > BOARD_WIDTH as f32
+                        || x < BOARD_ORIGO_X
+                        || y < BOARD_ORIGO_Y
                     {
                         // If we are out of bounds then the grab is cancelled
                         println!("Out of bounds");
                         return;
                     }
-                    if let Some(piece) = self.board[piece.get_index()].take() {
+                    if self.premove.is_some() {
+                        self.attempt_move(piece, piece_dest_index);
+                    } else if let Some(piece) = self.board[piece.get_index()].take() {
                         self.attempt_move(piece, piece_dest_index);
                     }
                 } else {
@@ -472,15 +517,21 @@ impl EventHandler for Game {
         self.menu.on_mouse_wheel(ctx, y);
     }
 
-    fn key_down_event(
-        &mut self,
-        _ctx: &mut Context,
-        keycode: KeyCode,
-        keymods: KeyMods,
-        repeat: bool,
-    ) {
+    fn text_input_event(&mut self, _ctx: &mut Context, character: char) {
+        // Name input when the game is launched
         if STATE.get().read().unwrap().entering_name {
-            on_key_down(keycode, keymods, repeat);
+            let mut name = STATE.get().read().unwrap().name.clone();
+
+            // 8u8 is the ASCII code for backspace
+            if character == (8u8 as char) {
+                name.pop();
+            } else if character != ' ' {
+                name.push(character);
+            }
+            if name.len() <= 20 {
+                STATE.get().write().unwrap().name = String::from(name);
+            }
+
         }
     }
 }
