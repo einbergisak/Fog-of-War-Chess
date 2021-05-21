@@ -459,6 +459,9 @@ impl Game {
                         self.reset_game();
                         self.playing_as_white = !self.playing_as_white;
                         self.active_turn = self.playing_as_white;
+                        self.time.increment = 0;
+                        self.time.time_left = self.time.total_time;
+                        self.time.opponent_time_left = self.time.total_time;
 
                         self.update_available_moves();
                         self.connection.send("play_again", "");
