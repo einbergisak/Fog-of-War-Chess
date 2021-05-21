@@ -137,7 +137,7 @@ impl EventHandler for Game {
                     self.game_over(PieceColor::White);
                 }
                 else {
-                    self.game_over(PieceColor::White);
+                    self.game_over(PieceColor::Black);
                 }
 
                 STATE
