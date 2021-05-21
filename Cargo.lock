@@ -645,6 +645,7 @@ dependencies = [
  "rust_socketio",
  "serde_json",
  "state",
+ "winapi 0.3.9",
 ]
 
 [[package]]

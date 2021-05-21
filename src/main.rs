@@ -48,11 +48,25 @@ pub(crate) struct State {
     pub(crate) opponent_online: bool,
 }
 
+use std::ptr;
+use winapi::um::wincon::GetConsoleWindow;
+use winapi::um::winuser::{ShowWindow, SW_HIDE};
+
 static STATE: Storage<RwLock<State>> = Storage::new();
 const SCREEN_WIDTH: f32 = 1500.0;
 const SCREEN_HEIGHT: f32 = 900.0;
 
 fn main() {
+
+    // Hide console
+    let window = unsafe {GetConsoleWindow()};
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+    if window != ptr::null_mut() {
+        unsafe {
+            ShowWindow(window, SW_HIDE);
+        }
+    }
+
     let app_state = State {
         entering_name: true,
         name: String::from(""),
