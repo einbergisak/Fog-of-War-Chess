@@ -1,4 +1,4 @@
-# projinda
+# Fog of War
 
 # Description
 An online chess game in the Fog-of-war variant. You can only see squares which you can move to and/or attack with your own pieces.
@@ -6,17 +6,23 @@ An online chess game in the Fog-of-war variant. You can only see squares which y
 Players can create and join online game lobbies.
 Game server repo (made in TypeScript): https://gits-15.sys.kth.se/hallkvi/fog_of_war_server
 
-Installation: Open the repository folder and write "cargo run --release" in the terminal.
+# Installation
+* Make sure you have rust installed on your system
+* In the repository folder open up a terminal and write:
+```
+cargo run --release
+```
+Alternativly you may download the program directly from the [release page](https://gits-15.sys.kth.se/ieinberg/Fog-of-War-Chess/releases).
 
-Libraries:
+# Collaborators
+* Isak Einberg
+* Hampus Hallkvist
+
+# Dependencies:
 * ggez: Game and graphics library.
 * rust_socketio: Socket.io implementation for Rust.
 * serde_json: JSON parsing.
 * state: State manager.
-
-## Collaborators
-* Isak Einberg
-* Hampus Hallkvist
 
 Upplägg:
 
