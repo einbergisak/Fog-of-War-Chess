@@ -22,11 +22,6 @@ pub(crate) struct Time {
 impl Game {
 	pub(crate) fn run_clock(&mut self) {
 
-		// If no opponent has connected or the game hasn't started we don't decrease the time
-		if !STATE.get().read().unwrap().opponent_online || !self.game_active {
-			return
-		}
-
 		// Decrease clock until we reach one second
 		if self.time.clock < 60 {
 			self.time.clock += 1;
@@ -35,6 +30,12 @@ impl Game {
 
 		// Reset clock
 		self.time.clock = 0;
+
+		// If no opponent has connected or the game hasn't started we don't do
+		// anything when one second has passed
+		if !STATE.get().read().unwrap().opponent_online || !self.game_active {
+			return
+		}
 		
 		if self.active_turn {
 			self.time.time_left -= 1;
@@ -178,7 +179,7 @@ impl Game {
 			}
 		} else {
 			// Cannot have games with negative time
-			if self.time.total_time - count >= 0 {
+			if self.time.total_time - count >= 15 {
 				self.time.total_time -= count;
 			}
 		}

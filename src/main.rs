@@ -68,7 +68,8 @@ fn main() {
             set_color: None,
             resign: false,
             opponent_name: None,
-            time: None
+            time: None,
+            deselect_cursor: false
         },
         room_id: None,
         opponent_online: false

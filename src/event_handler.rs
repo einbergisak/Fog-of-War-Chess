@@ -183,6 +183,12 @@ impl EventHandler for Game {
                 }
                 None => {}
             }
+
+            if event_validation.deselect_cursor {
+                ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Could not deselect cursor");
+                ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
+                STATE.get().write().unwrap().event_validation.deselect_cursor = false;
+            }
         }
 
         // Let the loop sleep until read to continue
