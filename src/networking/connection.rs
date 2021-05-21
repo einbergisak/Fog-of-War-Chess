@@ -15,8 +15,8 @@ pub(crate) struct NetworkEventValidation {
     pub(crate) set_color: Option<PieceColor>,
     pub(crate) resign: bool,
     pub(crate) opponent_name: Option<String>,
-    pub(crate) time: Option<(i32, i32)>,
-    pub(crate) deselect_cursor: bool
+    pub(crate) time: Option<(u64, u64)>,
+    pub(crate) deselect_cursor: bool,
 }
 
 #[derive(Debug, Clone)]

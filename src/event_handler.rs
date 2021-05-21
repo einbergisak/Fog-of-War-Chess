@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 
 use ggez::{
     event::{EventHandler, MouseButton},
@@ -17,7 +18,6 @@ use ggez::timer;
 
 use crate::piece::piece::PieceColor;
 
-
 use crate::{
     piece::{self, piece::PieceColor::*},
     render_utilities,
@@ -33,8 +33,29 @@ pub(crate) const BOARD_ORIGO_Y: f32 = SCREEN_HEIGHT / 2.0 - (BOARD_WIDTH / 2) as
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         while ggez::timer::check_update_time(ctx, 60) {
-
-            self.run_clock();
+            if self.game_active {
+                if self.active_turn {
+                    if self.time.current_time_left < self.time.turn_start.elapsed() {
+                        if self.playing_as_white {
+                            self.game_over(White);
+                            return Ok(());
+                        } else {
+                            self.game_over(Black);
+                            return Ok(());
+                        }
+                    }
+                } else {
+                    if self.time.opponent_time_left < self.time.turn_start.elapsed() {
+                        if self.playing_as_white {
+                            self.game_over(Black);
+                            return Ok(());
+                        } else {
+                            self.game_over(White);
+                            return Ok(());
+                        }
+                    }
+                }
+            }
 
             let state_read = STATE.get().read().unwrap().clone();
 
@@ -74,6 +95,7 @@ impl EventHandler for Game {
                     self.active_turn = true;
                     self.playing_as_white = true;
                     self.is_admin = true;
+                    self.time.turn_start = Instant::now();
                     self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.create_room = false;
                 }
@@ -95,6 +117,7 @@ impl EventHandler for Game {
                     self.reset_game();
                     self.playing_as_white = !self.playing_as_white;
                     self.active_turn = self.playing_as_white;
+                    self.time.turn_start = Instant::now();
 
                     self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.play_again = false;
@@ -109,11 +132,12 @@ impl EventHandler for Game {
                     self.reset_game();
                     self.playing_as_white = !self.playing_as_white;
                     self.active_turn = self.playing_as_white;
+                    self.time.turn_start = Instant::now();
                 }
 
-                let color = if (
-                    self.winner.is_some() && self.playing_as_white) || (self.winner.is_none() && !self.playing_as_white
-                ) {
+                let color = if (self.winner.is_some() && self.playing_as_white)
+                    || (self.winner.is_none() && !self.playing_as_white)
+                {
                     String::from("white")
                 } else {
                     String::from("black")
@@ -125,7 +149,14 @@ impl EventHandler for Game {
                 // Tell the new connection which color it should have
                 // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
-                self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
+                self.connection.send(
+                    "set_clock_time",
+                    &format!(
+                        "{}:{}",
+                        self.time.initial_time.as_secs(),
+                        self.time.increment.as_secs()
+                    )[..],
+                );
 
                 STATE
                     .get()
@@ -138,8 +169,7 @@ impl EventHandler for Game {
             if event_validation.opponent_disconnect {
                 if self.playing_as_white {
                     self.game_over(PieceColor::White);
-                }
-                else {
+                } else {
                     self.game_over(PieceColor::Black);
                 }
 
@@ -158,6 +188,7 @@ impl EventHandler for Game {
                 Some(White) => {
                     self.playing_as_white = true;
                     self.active_turn = true;
+                    self.time.turn_start = Instant::now();
 
                     self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.set_color = None;
@@ -165,6 +196,7 @@ impl EventHandler for Game {
                 Some(Black) => {
                     self.playing_as_white = false;
                     self.active_turn = false;
+                    self.time.turn_start = Instant::now();
 
                     self.update_available_moves();
                     STATE.get().write().unwrap().event_validation.set_color = None;
@@ -180,20 +212,26 @@ impl EventHandler for Game {
             match event_validation.time {
                 Some((total_time, increment)) => {
                     self.time.time_set = true;
-                    self.time.total_time = total_time;
-                    self.time.increment = increment;
+                    self.time.initial_time = Duration::from_secs(total_time);
+                    self.time.increment = Duration::from_secs(increment);
 
-                    self.time.time_left = self.time.total_time;
-                    self.time.opponent_time_left = self.time.total_time;
+                    self.time.current_time_left = self.time.initial_time;
+                    self.time.opponent_time_left = self.time.initial_time;
                     STATE.get().write().unwrap().event_validation.time = None;
                 }
                 None => {}
             }
 
             if event_validation.deselect_cursor {
-                ggez::input::mouse::set_cursor_grabbed(ctx, false).expect("Could not deselect cursor");
+                ggez::input::mouse::set_cursor_grabbed(ctx, false)
+                    .expect("Could not deselect cursor");
                 ggez::input::mouse::set_cursor_type(ctx, ggez::input::mouse::MouseCursor::Default);
-                STATE.get().write().unwrap().event_validation.deselect_cursor = false;
+                STATE
+                    .get()
+                    .write()
+                    .unwrap()
+                    .event_validation
+                    .deselect_cursor = false;
             }
         }
 
@@ -321,25 +359,24 @@ impl EventHandler for Game {
                 let mut parsing_groups: Vec<ClickableGroup> = Vec::new();
                 if read_state.entering_name {
                     parsing_groups.push(ClickableGroup::EnterName);
-                }
-                else if self.menu.visible {
+                } else if self.menu.visible {
                     parsing_groups.push(ClickableGroup::MainMenu);
                     parsing_groups.push(ClickableGroup::MainMenuList);
                 } else if self.winner.is_some() {
                     parsing_groups.push(ClickableGroup::GameOverMenu);
                 } else if !self.time.time_set {
                     parsing_groups.push(ClickableGroup::TimeSelection);
-                }
-                else {
+                } else {
                     parsing_groups.push(ClickableGroup::InGame);
                 }
                 // Button logic
                 self.button_parsing(parsing_groups);
 
-                if read_state.entering_name ||
-                    self.menu.visible ||
-                    self.winner.is_some() ||
-                    !self.time.time_set {
+                if read_state.entering_name
+                    || self.menu.visible
+                    || self.winner.is_some()
+                    || !self.time.time_set
+                {
                     return;
                 }
 
@@ -347,7 +384,7 @@ impl EventHandler for Game {
 
                 // If there is no opponent we cannot make moves
                 if !read_state.opponent_online {
-                    return
+                    return;
                 }
 
                 // Cursor out of bounds checking
@@ -509,16 +546,14 @@ impl EventHandler for Game {
         let mut parsing_groups: Vec<ClickableGroup> = Vec::new();
         if read_state.entering_name {
             parsing_groups.push(ClickableGroup::EnterName);
-        }
-        else if self.menu.visible {
+        } else if self.menu.visible {
             parsing_groups.push(ClickableGroup::MainMenu);
             parsing_groups.push(ClickableGroup::MainMenuList);
         } else if self.winner.is_some() {
             parsing_groups.push(ClickableGroup::GameOverMenu);
         } else if !self.time.time_set {
             parsing_groups.push(ClickableGroup::TimeSelection);
-        }
-        else {
+        } else {
             parsing_groups.push(ClickableGroup::InGame);
         }
 
@@ -543,7 +578,6 @@ impl EventHandler for Game {
             if name.len() <= 20 {
                 STATE.get().write().unwrap().name = String::from(name);
             }
-
         }
     }
 }

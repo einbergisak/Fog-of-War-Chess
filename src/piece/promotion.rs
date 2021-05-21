@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::piece::piece::Piece;
 use crate::render_utilities::flip_index;
 use crate::Game;
@@ -81,6 +83,7 @@ pub(crate) fn check_promotion(game: &mut Game, x_tile: usize, y_tile: usize) {
             );
             // Your turn is over once you've made a move
             game.active_turn = !game.active_turn;
+            game.time.turn_start = Instant::now();
             game.update_available_moves();
         }
         // If clicking outside the promotion interface: return the pawn to its source position.

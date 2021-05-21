@@ -7,7 +7,7 @@ pub(crate) enum ClickableGroup {
     MainMenuList = 2,
     InGame = 3,
     GameOverMenu = 4,
-    TimeSelection = 5
+    TimeSelection = 5,
 }
 
 pub(crate) struct Transform {

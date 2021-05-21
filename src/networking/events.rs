@@ -169,9 +169,9 @@ pub(crate) fn on_set_clock_time(payload: Payload, _: Socket) {
         Payload::String(package) => {
             let data = package.replace("\"", "");
             let mut split = data.split(":");
-            let total_time = split.next().unwrap().parse::<i32>().unwrap();
-            let increment = split.next().unwrap().parse::<i32>().unwrap();
-            
+            let total_time = split.next().unwrap().parse::<u64>().unwrap();
+            let increment = split.next().unwrap().parse::<u64>().unwrap();
+
             STATE.get().write().unwrap().event_validation.time = Some((total_time, increment));
         }
         Payload::Binary(_) => {}

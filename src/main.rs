@@ -30,10 +30,10 @@ mod networking {
 }
 mod menu {
     pub mod clickable;
+    pub mod create_clickable_layout;
     pub mod menu_game_over;
     pub mod menu_state;
     pub mod menu_utilities;
-    pub mod create_clickable_layout;
 }
 
 #[derive(Debug, Clone)]
@@ -69,10 +69,10 @@ fn main() {
             resign: false,
             opponent_name: None,
             time: None,
-            deselect_cursor: false
+            deselect_cursor: false,
         },
         room_id: None,
-        opponent_online: false
+        opponent_online: false,
     };
     STATE.set(RwLock::new(app_state));
 

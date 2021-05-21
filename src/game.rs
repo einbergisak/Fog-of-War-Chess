@@ -1,9 +1,21 @@
-use ggez::{Context, audio::{SoundSource, Source}, graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect}};
+use std::time::{Duration, Instant};
 
-use crate::{default_board_state::generate_default_board, menu::{
+use ggez::{
+    audio::{SoundSource, Source},
+    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
+    Context,
+};
+
+use crate::{
+    default_board_state::generate_default_board,
+    menu::{
         clickable::{Clickable, Transform},
         menu_state::Menu,
-    }, move_struct::MoveType, piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *}, time::Time};
+    },
+    move_struct::MoveType,
+    piece::piece::{self, Board, Piece, PieceColor::*, PieceType::*, *},
+    time::Time,
+};
 
 use crate::{
     menu::{
@@ -31,7 +43,7 @@ pub(crate) const ERROR_COLOR: (u8, u8, u8) = (176, 0, 32);
 pub(crate) struct Sound {
     pub(crate) movement: Source,
     pub(crate) capture: Source,
-    pub(crate) game_end: Source    
+    pub(crate) game_end: Source,
 }
 // Main struct
 pub(crate) struct Game {
@@ -52,7 +64,7 @@ pub(crate) struct Game {
     pub(crate) is_admin: bool,
     pub(crate) time: Time,
     pub(crate) game_active: bool,
-    pub(crate) sound: Sound
+    pub(crate) sound: Sound,
 }
 
 impl Game {
@@ -78,19 +90,19 @@ impl Game {
             winner: None,
             is_admin: false,
             time: Time {
+                current_time_left: Duration::new(300, 0),
+                opponent_time_left: Duration::new(300, 0),
+                turn_start: Instant::now(),
+                initial_time: Duration::new(300, 0),
+                increment: Duration::new(0, 0),
                 time_set: false,
-                clock: 0,
-                time_left: 0,
-                opponent_time_left: 0,
-                total_time: 5 * 60,
-                increment: 0
             },
             game_active: false,
             sound: Sound {
                 movement: ggez::audio::Source::new(ctx, "/move.ogg").unwrap(),
                 capture: ggez::audio::Source::new(ctx, "/capture.ogg").unwrap(),
-                game_end: ggez::audio::Source::new(ctx, "/game_end.ogg").unwrap()
-            }
+                game_end: ggez::audio::Source::new(ctx, "/game_end.ogg").unwrap(),
+            },
         }
     }
 
@@ -98,10 +110,10 @@ impl Game {
     fn start_game(&mut self) {
         // Cannot start game while in progress
         if self.game_active || self.winner.is_some() {
-            return;    
+            return;
         }
-        self.time.time_left = self.time.total_time;
-        self.time.opponent_time_left = self.time.total_time;
+        self.time.current_time_left = self.time.initial_time;
+        self.time.opponent_time_left = self.time.initial_time;
         self.game_active = true;
     }
 
@@ -169,6 +181,7 @@ impl Game {
             if !self.game_active {
                 self.start_game();
             }
+            self.time.turn_start = Instant::now();
             self.update_available_moves();
         } else {
             println!("Moving! active_turn: {}", self.active_turn);
@@ -348,9 +361,15 @@ impl Game {
 
         // Play sound
         if captured_piece.is_some() {
-            self.sound.capture.play().expect("Could not play capture sound");
+            self.sound
+                .capture
+                .play()
+                .expect("Could not play capture sound");
         } else {
-            self.sound.movement.play().expect("Could not play movement sound");
+            self.sound
+                .movement
+                .play()
+                .expect("Could not play movement sound");
         }
 
         if self.active_turn {
@@ -368,22 +387,31 @@ impl Game {
         if !self.game_active {
             self.start_game();
         }
+        self.time.turn_start = Instant::now();
         self.move_history.push(move_);
     }
 
     pub(crate) fn game_over(&mut self, winning_color: PieceColor) {
         // Cannot game over more than once
         if self.winner.is_some() {
-            return
+            return;
         }
 
         self.game_active = false;
         self.grabbed_piece = None;
         self.selected_piece = None;
-        STATE.get().write().unwrap().event_validation.deselect_cursor = true;
+        STATE
+            .get()
+            .write()
+            .unwrap()
+            .event_validation
+            .deselect_cursor = true;
 
         // Play game over sound
-        self.sound.game_end.play().expect("Could not play game over sound");
+        self.sound
+            .game_end
+            .play()
+            .expect("Could not play game over sound");
 
         match winning_color {
             PieceColor::White => {
@@ -440,6 +468,7 @@ impl Game {
         self.selected_piece = None;
         self.premove = None;
         self.move_history = Vec::new();
+        self.time.turn_start = Instant::now();
         self.promoting_pawn = None;
     }
 
@@ -456,17 +485,24 @@ impl Game {
                         self.connection.send("create_room", "");
                     }
                     "play_again" => {
-                        if STATE.get().read().unwrap().event_validation.opponent_name.is_none() {
+                        if STATE
+                            .get()
+                            .read()
+                            .unwrap()
+                            .event_validation
+                            .opponent_name
+                            .is_none()
+                        {
                             return;
                         }
 
                         self.reset_game();
                         self.playing_as_white = !self.playing_as_white;
                         self.active_turn = self.playing_as_white;
-                        self.time.increment = 0;
-                        self.time.time_left = self.time.total_time;
-                        self.time.opponent_time_left = self.time.total_time;
-
+                        self.time.increment = Duration::from_secs(0);
+                        self.time.current_time_left = self.time.initial_time;
+                        self.time.opponent_time_left = self.time.initial_time;
+                        self.time.turn_start = Instant::now();
                         self.update_available_moves();
                         self.connection.send("play_again", "");
                     }
@@ -505,32 +541,67 @@ impl Game {
                             self.menu.clickables.remove(index);
                         }
                     }
-                    "minute_plus_1" => { self.modify_time(1 * 60, true, false); }
-                    "minute_plus_5" => { self.modify_time(5 * 60, true, false); }
-                    "minute_plus_10" => { self.modify_time(10 * 60, true, false); }
-                    "minute_minus_1" => { self.modify_time(1 * 60, false, false); }
-                    "minute_minus_5" => { self.modify_time(5 * 60, false, false); }
-                    "minute_minus_10" => { self.modify_time(10 * 60, false, false); }
-                    
-                    "second_plus_15" => { self.modify_time(15, true, false); }
-                    "second_minus_15" => { self.modify_time(15, false, false); }
-                    
-                    "increment_plus_1" => { self.modify_time(1, true, true); }
-                    "increment_plus_5" => { self.modify_time(5, true, true); }
-                    "increment_plus_10" => { self.modify_time(10, true, true); }
-                    "increment_minus_1" => { self.modify_time(1, false, true); }
-                    "increment_minus_5" => { self.modify_time(5, false, true); }
-                    "increment_minus_10" => { self.modify_time(10, false, true); }
+                    "minute_plus_1" => {
+                        self.modify_time(Duration::from_secs(60), true, false);
+                    }
+                    "minute_plus_5" => {
+                        self.modify_time(Duration::from_secs(5 * 60), true, false);
+                    }
+                    "minute_plus_10" => {
+                        self.modify_time(Duration::from_secs(10 * 60), true, false);
+                    }
+                    "minute_minus_1" => {
+                        self.modify_time(Duration::from_secs(60), false, false);
+                    }
+                    "minute_minus_5" => {
+                        self.modify_time(Duration::from_secs(5 * 60), false, false);
+                    }
+                    "minute_minus_10" => {
+                        self.modify_time(Duration::from_secs(10 * 60), false, false);
+                    }
+
+                    "second_plus_15" => {
+                        self.modify_time(Duration::from_secs(15), true, false);
+                    }
+                    "second_minus_15" => {
+                        self.modify_time(Duration::from_secs(15), false, false);
+                    }
+
+                    "increment_plus_1" => {
+                        self.modify_time(Duration::from_secs(1), true, true);
+                    }
+                    "increment_plus_5" => {
+                        self.modify_time(Duration::from_secs(5), true, true);
+                    }
+                    "increment_plus_10" => {
+                        self.modify_time(Duration::from_secs(10), true, true);
+                    }
+                    "increment_minus_1" => {
+                        self.modify_time(Duration::from_secs(1), false, true);
+                    }
+                    "increment_minus_5" => {
+                        self.modify_time(Duration::from_secs(5), false, true);
+                    }
+                    "increment_minus_10" => {
+                        self.modify_time(Duration::from_secs(10), false, true);
+                    }
                     "finish_time_start_game" => {
                         // Only admin has permission to make changes to the time
                         if self.is_admin {
                             self.time.time_set = true;
-                            self.time.time_left = self.time.total_time;
-                            self.time.opponent_time_left = self.time.total_time;   
+                            self.time.current_time_left = self.time.initial_time;
+                            self.time.opponent_time_left = self.time.initial_time;
 
                             if read_state.opponent_online {
                                 // If the client is already connected we send the data afterwards
-                                self.connection.send("set_clock_time", &format!("{}:{}", self.time.total_time, self.time.increment)[..]);
+                                self.connection.send(
+                                    "set_clock_time",
+                                    &format!(
+                                        "{}:{}",
+                                        self.time.initial_time.as_secs(),
+                                        self.time.increment.as_secs()
+                                    )[..],
+                                );
                             }
                         }
                     }
@@ -584,7 +655,9 @@ impl Game {
             self.board[piece.index] = Some(piece);
 
             // TODO: Premove constraints
-            if piece_dest_index != piece.index && get_valid_move_indices(self, &piece, true).contains(&piece_dest_index) {
+            if piece_dest_index != piece.index
+                && get_valid_move_indices(self, &piece, true).contains(&piece_dest_index)
+            {
                 println!(
                     "It's not your turn. Adding premove to index {} ",
                     piece_dest_index
