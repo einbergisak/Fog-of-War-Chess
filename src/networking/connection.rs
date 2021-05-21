@@ -45,6 +45,9 @@ impl Networking {
             .on("opponent_disconnect", |payload, socket| {
                 events::on_opponent_disconnect(payload, socket)
             })
+            .on("opponent_leave_lobby", |payload, socket| {
+                events::on_opponent_disconnect(payload, socket)
+            })
             .on("list_rooms", |payload, socket| {
                 events::on_list_room(payload, socket)
             })
