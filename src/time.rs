@@ -165,7 +165,7 @@ impl Game {
 					self.time.increment += count;
 				}
 			} else {
-				if self.time.increment - count > 0 {
+				if self.time.increment - count >= 0 {
 					self.time.increment -= count;
 				}
 			}
