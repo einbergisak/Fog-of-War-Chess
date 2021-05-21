@@ -39,10 +39,10 @@ Upplägg:
     * ~(Pjäser kan “se” de rutor som de kan attackera och/eller gå till)~
   * ~Movement indication (Isak)~
   * ~Select by clicking (Isak)~
-  * Ljudsystem (Hampus)
+  * ~Ljudsystem (Hampus)~
   * ~Vinst/förlust (att nått händer) (Hampus)~
   * ~Dekorera main menu (Hampus)~
-  * Schackklocka (Hampus)
+  * ~Schackklocka (Hampus)~
   * ~Pre-moves (Isak)~
   * Joina lobby som åskådare (Hampus)
   * ~Ange namn när man skapar/joinar en lobby. (Hampus)~
