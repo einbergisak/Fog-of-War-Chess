@@ -119,6 +119,9 @@ impl EventHandler for Game {
                     String::from("black")
                 };
 
+                // Update available moves when client connects
+                self.update_available_moves();
+
                 // Tell the new connection which color it should have
                 // And what the clock should start at
                 self.connection.send("set_opponent_color", &color);
