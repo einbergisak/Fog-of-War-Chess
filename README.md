@@ -1,5 +1,5 @@
 # Fog of War
-![Fog of war banner](https://gits-15.sys.kth.se/ieinberg/Fog-of-War-Chess/blob/master/resources/banner.png?raw=true)
+![Fog of war banner](resources/banner.png)
 
 ## Description
 An online chess game in the Fog-of-war variant. You can only see squares which you can move to and/or attack with your own pieces.
