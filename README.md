@@ -5,7 +5,7 @@
 An online chess game in the 'Fog of war variant'. You can only see squares/tiles which you can move to with your own pieces.
 
 Players can create and join online game lobbies.
-Game server repo (made in TypeScript): https://gits-15.sys.kth.se/hallkvi/fog_of_war_server
+Game server repo (made in TypeScript): https://github.com/Hampfh/fog_of_war_server
 
 ## Background
 Made as a collaborative project between Isak Einberg and Hampus Hallkvist as a part of the course "DD1349 Project in Introduction to Computer Science".
